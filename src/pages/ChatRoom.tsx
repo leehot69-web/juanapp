@@ -36,31 +36,39 @@ const ChatRoom: React.FC = () => {
     const fetchChatInfo = async () => {
         if (!chatId || !currentUserId) return;
 
-        // Get chat details and other participant
-        const { data: chatData } = await supabase
-            .from('chats')
-            .select('*')
-            .eq('id', chatId)
-            .single();
+        try {
+            // Get chat details and other participant
+            const { data: chatData } = await supabase
+                .from('chats')
+                .select('*')
+                .eq('id', chatId)
+                .single();
 
-        if (chatData) {
-            if (!chatData.is_group) {
-                const { data: participants } = await supabase
-                    .from('chat_participants')
-                    .select('profiles(username, avatar_url)')
-                    .eq('chat_id', chatId)
-                    .neq('user_id', currentUserId)
-                    .single();
+            if (chatData) {
+                if (!chatData.is_group) {
+                    const { data: participants, error } = await supabase
+                        .from('chat_participants')
+                        .select('user_id, profiles(username, avatar_url)')
+                        .eq('chat_id', chatId)
+                        .neq('user_id', currentUserId)
+                        .maybeSingle();
 
-                if (participants) {
-                    setChatInfo({
-                        name: (participants as any).profiles.username,
-                        avatar_url: (participants as any).profiles.avatar_url
-                    });
+                    if (participants && (participants as any).profiles) {
+                        const prof = (participants as any).profiles;
+                        setChatInfo({
+                            name: prof.username?.split('@')[0] || 'Usuario',
+                            avatar_url: prof.avatar_url
+                        });
+                    } else {
+                        // Si no hay perfil, al menos mostramos algo para que no se quede en blanco
+                        setChatInfo({ name: 'Chat Privado' });
+                    }
+                } else {
+                    setChatInfo({ name: chatData.name || 'Grupo', is_group: true });
                 }
-            } else {
-                setChatInfo({ name: chatData.name, is_group: true });
             }
+        } catch (e) {
+            setChatInfo({ name: 'Conversación' });
         }
     };
 
