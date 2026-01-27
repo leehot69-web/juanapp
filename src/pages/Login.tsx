@@ -98,7 +98,7 @@ const Login: React.FC = () => {
             <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border-t-8 border-[#25d366]">
                 <div className="text-center mb-10">
                     <div className="inline-block p-4 bg-[#25d366]/10 rounded-full mb-4">
-                        <div className="text-5xl font-black text-[#25d366] italic">JuanApp</div>
+                        <div className="text-5xl font-black text-[#25d366] italic">WhoApp</div>
                     </div>
                     <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
                         {isRegistering ? 'Crea tu cuenta estilo WhatsApp' : 'Entra con tu Número'}

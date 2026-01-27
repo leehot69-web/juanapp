@@ -28,7 +28,7 @@ const MainLayout: React.FC = () => {
             `}>
                 <div className="p-4 bg-white dark:bg-gray-800 flex justify-between items-center h-16 border-b dark:border-gray-700">
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-green-600 bg-clip-text text-transparent italic">
-                        JuanApp
+                        WhoApp
                     </h1>
                     <div className="flex gap-1">
                         <button
@@ -38,7 +38,7 @@ const MainLayout: React.FC = () => {
                                     const link = `${window.location.origin}/login?phone=${p}&pin=123456`;
                                     navigator.clipboard.writeText(link);
                                     toast.success('¡Link de acceso copiado!');
-                                    window.open(`https://wa.me/?text=${encodeURIComponent('Hola! Entra a mi chat usando este link directo: ' + link)}`, '_blank');
+                                    window.open(`https://wa.me/?text=${encodeURIComponent('¡Hola! Entra a mi chat en WhoApp usando este link directo: ' + link)}`, '_blank');
                                 });
                             }}
                             className="p-2 text-[#128c7e] hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all"
