@@ -112,36 +112,77 @@ const ChatList: React.FC = () => {
     }
 
     return (
-        <div className="flex-1 overflow-y-auto">
-            {chats.map((chat) => (
-                <div
-                    key={chat.id}
-                    onClick={() => navigate(`/chat/${chat.id}`)}
-                    className={`flex items-center p-3 cursor-pointer hover:bg-gray-100 transition-colors border-b dark:hover:bg-gray-700 dark:border-gray-700 ${activeChatId === chat.id ? 'bg-gray-200 dark:bg-gray-600' : ''
-                        }`}
-                >
-                    <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 mr-3 overflow-hidden shadow-sm">
-                        {chat.other_user?.avatar_url ? (
-                            <img src={chat.other_user.avatar_url} alt={chat.name} className="w-full h-full object-cover" />
-                        ) : (
-                            <FaUserCircle size={32} />
-                        )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-baseline">
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                {chat.name}
-                            </h3>
-                            <span className="text-xs text-gray-500">
-                                {chat.last_message_time || ''}
-                            </span>
+        <div className="flex flex-col h-full">
+            <div className="flex-1 overflow-y-auto">
+                {chats.map((chat) => (
+                    <div
+                        key={chat.id}
+                        onClick={() => navigate(`/chat/${chat.id}`)}
+                        className={`flex items-center p-3 cursor-pointer hover:bg-gray-100 transition-colors border-b dark:hover:bg-gray-700 dark:border-gray-700 ${activeChatId === chat.id ? 'bg-gray-200 dark:bg-gray-600' : ''
+                            }`}
+                    >
+                        <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 mr-3 overflow-hidden shadow-sm">
+                            {chat.other_user?.avatar_url ? (
+                                <img src={chat.other_user.avatar_url} alt={chat.name} className="w-full h-full object-cover" />
+                            ) : (
+                                <FaUserCircle size={32} />
+                            )}
                         </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                            {chat.last_message || 'Haz clic para chatear'}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-baseline">
+                                <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                    {chat.name}
+                                </h3>
+                                <span className="text-xs text-gray-500">
+                                    {chat.last_message_time || ''}
+                                </span>
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                {chat.last_message || 'Haz clic para chatear'}
+                            </p>
+                        </div>
                     </div>
-                </div>
-            ))}
+                ))}
+            </div>
+
+            {/* User Profile Info Footer */}
+            <CurrentUserProfile />
+        </div>
+    );
+};
+
+const CurrentUserProfile: React.FC = () => {
+    const [profile, setProfile] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchMe = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+                setProfile(data);
+            }
+        };
+        fetchMe();
+    }, []);
+
+    if (!profile) return null;
+
+    return (
+        <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center shadow-lg">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary mr-3 overflow-hidden border-2 border-white dark:border-gray-700">
+                {profile.avatar_url ? (
+                    <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                ) : (
+                    <FaUserCircle size={24} />
+                )}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-xs font-black text-primary uppercase tracking-tighter">Mi Perfil</p>
+                <p className="font-bold text-gray-900 dark:text-gray-100 truncate">
+                    {profile.full_name || profile.username}
+                </p>
+                <p className="text-[10px] text-gray-500 font-mono italic truncate">@{profile.username}</p>
+            </div>
         </div>
     );
 };

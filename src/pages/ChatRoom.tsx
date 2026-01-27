@@ -56,7 +56,7 @@ const ChatRoom: React.FC = () => {
                     if (participants && (participants as any).profiles) {
                         const prof = (participants as any).profiles;
                         setChatInfo({
-                            name: prof.username?.split('@')[0] || 'Usuario',
+                            name: prof.username || 'Usuario',
                             avatar_url: prof.avatar_url
                         });
                     } else {

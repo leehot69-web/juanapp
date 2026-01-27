@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { FaTimes, FaSearch, FaUserCircle, FaPaperPlane } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -17,6 +18,7 @@ interface NewChatModalProps {
 }
 
 const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onChatCreated }) => {
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [results, setResults] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(false);
@@ -33,7 +35,7 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onChatCrea
                     query = query.or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
                 } else {
                     // Si no busca nada, mostramos a los últimos registrados para que se encuentren
-                    query = query.order('id', { ascending: false }).limit(20);
+                    query = query.order('updated_at', { ascending: false }).limit(50);
                 }
 
                 const { data, error } = await query;
@@ -62,7 +64,33 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onChatCrea
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("No estás autenticado");
 
-            // 1. Create new chat record (Simplified for now)
+            // 1. Check if a chat already exists between these two users
+            const { data: existingChats, error: existingError } = await supabase
+                .from('chat_participants')
+                .select('chat_id')
+                .eq('user_id', user.id);
+
+            if (!existingError && existingChats) {
+                const chatIds = existingChats.map(c => c.chat_id);
+
+                // Find if any of these chats also have the other user
+                const { data: matchingParticipant } = await supabase
+                    .from('chat_participants')
+                    .select('chat_id')
+                    .in('chat_id', chatIds)
+                    .eq('user_id', userId)
+                    .maybeSingle();
+
+                if (matchingParticipant) {
+                    toast.success('Abriendo chat existente...');
+                    onChatCreated();
+                    onClose();
+                    navigate(`/chat/${matchingParticipant.chat_id}`);
+                    return;
+                }
+            }
+
+            // 2. Create new chat record
             const { data: chatData, error: chatError } = await supabase
                 .from('chats')
                 .insert({ is_group: false })
@@ -71,27 +99,23 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onChatCrea
 
             if (chatError) throw chatError;
 
-            // 2. Add current user as participant (this should work with RLS)
+            // 3. Add participants
             const { error: part1Error } = await supabase
                 .from('chat_participants')
-                .insert({ chat_id: chatData.id, user_id: user.id });
+                .insert([
+                    { chat_id: chatData.id, user_id: user.id },
+                    { chat_id: chatData.id, user_id: userId }
+                ]);
 
-            if (part1Error) throw part1Error;
-
-            // 3. Add the other user
-            const { error: part2Error } = await supabase
-                .from('chat_participants')
-                .insert({ chat_id: chatData.id, user_id: userId });
-
-            if (part2Error) {
-                console.warn('RLS might be blocking adding other participants:', part2Error);
-                // If this fails, we might need a DB trigger or function
-                throw new Error("No se pudo agregar al otro usuario. Contacta al administrador.");
+            if (part1Error) {
+                console.warn('Error adding participants:', part1Error);
+                throw new Error("No se pudo iniciar el chat.");
             }
 
             toast.success('¡Chat iniciado!');
             onChatCreated();
             onClose();
+            navigate(`/chat/${chatData.id}`);
         } catch (error: any) {
             toast.error(error.message);
         } finally {
@@ -120,7 +144,7 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onChatCrea
                         <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" />
                         <input
                             type="text"
-                            placeholder="Nombre de usuario o email..."
+                            placeholder="Buscar por usuario..."
                             className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-transparent border-gray-100 dark:border-gray-600 rounded-2xl focus:outline-none focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-all shadow-sm"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -136,7 +160,7 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onChatCrea
                         </h3>
                         {results.length === 0 && !loading && (
                             <div className="text-center p-8 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700">
-                                <p className="text-sm text-gray-500">No hay nadie más aquí aún...</p>
+                                <p className="text-sm text-gray-500">No se encontraron usuarios</p>
                             </div>
                         )}
                     </div>
@@ -157,11 +181,11 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onChatCrea
                                     )}
                                 </div>
                                 <div className="text-left flex-1">
-                                    <div className="font-bold text-gray-900 dark:text-gray-100">
-                                        {profile.full_name || profile.username.split('@')[0]}
+                                    <div className="font-bold text-gray-900 dark:text-gray-100 truncate">
+                                        {profile.full_name || profile.username}
                                     </div>
                                     <div className="text-xs text-gray-400 font-mono italic">
-                                        {profile.username.includes('@') ? `+${profile.username.split('@')[0]}` : profile.username}
+                                        @{profile.username}
                                     </div>
                                 </div>
                                 <div className="text-[#128c7e] opacity-0 group-hover:opacity-100 transition-opacity">
