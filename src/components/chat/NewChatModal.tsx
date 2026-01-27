@@ -24,21 +24,24 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onChatCrea
 
     useEffect(() => {
         const searchUsers = async () => {
-            if (searchTerm.trim().length < 2) {
-                setResults([]);
-                return;
-            }
-
             setLoading(true);
             try {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`)
-                    .limit(10);
+                let query = supabase.from('profiles').select('*');
 
+                if (searchTerm.trim().length >= 2) {
+                    // Si el usuario busca algo específico
+                    query = query.or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`);
+                } else {
+                    // Si no busca nada, mostramos a los últimos registrados para que se encuentren
+                    query = query.order('id', { ascending: false }).limit(20);
+                }
+
+                const { data, error } = await query;
                 if (error) throw error;
-                setResults(data || []);
+
+                // No mostrarse a uno mismo en la lista
+                const { data: { user } } = await supabase.auth.getUser();
+                setResults((data || []).filter(p => p.id !== user?.id));
             } catch (error) {
                 console.error(error);
             } finally {
@@ -127,28 +130,16 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onChatCrea
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-4 pb-4">
-                    {loading && (
-                        <div className="flex flex-col items-center justify-center p-12 space-y-4">
-                            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                            <p className="text-gray-500 animate-pulse">Buscando usuarios...</p>
-                        </div>
-                    )}
-
-                    {!loading && results.length === 0 && searchTerm.length >= 2 && (
-                        <div className="text-center p-12 flex flex-col items-center">
-                            <div className="w-20 h-20 bg-gray-50 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
-                                <FaSearch size={32} className="text-gray-300" />
+                    <div className="mb-4">
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 mb-2">
+                            {searchTerm ? 'Resultados de búsqueda' : 'Directorio de Usuarios'}
+                        </h3>
+                        {results.length === 0 && !loading && (
+                            <div className="text-center p-8 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+                                <p className="text-sm text-gray-500">No hay nadie más aquí aún...</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">No se encontraron usuarios</h3>
-                            <p className="text-sm text-gray-500">Intenta con otro nombre o correo</p>
-                        </div>
-                    )}
-
-                    {!loading && results.length === 0 && searchTerm.length < 2 && (
-                        <div className="text-center p-12 text-gray-400">
-                            <p>Escribe al menos 2 letras para buscar</p>
-                        </div>
-                    )}
+                        )}
+                    </div>
 
                     <div className="space-y-2">
                         {results.map(profile => (
@@ -158,7 +149,7 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onChatCrea
                                 disabled={creating}
                                 className="w-full flex items-center p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-2xl transition-all active:scale-[0.98] border border-transparent hover:border-gray-100 dark:hover:border-gray-600 group"
                             >
-                                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-4 border-2 border-white dark:border-gray-800 shadow-sm overflow-hidden group-hover:scale-110 transition-transform">
+                                <div className="w-14 h-14 rounded-full bg-[#128c7e]/10 flex items-center justify-center text-[#128c7e] mr-4 border-2 border-white dark:border-gray-800 shadow-sm overflow-hidden group-hover:scale-110 transition-transform">
                                     {profile.avatar_url ? (
                                         <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
                                     ) : (
@@ -166,10 +157,14 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose, onChatCrea
                                     )}
                                 </div>
                                 <div className="text-left flex-1">
-                                    <div className="font-bold text-gray-900 dark:text-gray-100">{profile.username}</div>
-                                    <div className="text-sm text-gray-500 truncate max-w-[200px]">{profile.full_name || 'Sin nombre completo'}</div>
+                                    <div className="font-bold text-gray-900 dark:text-gray-100">
+                                        {profile.full_name || profile.username.split('@')[0]}
+                                    </div>
+                                    <div className="text-xs text-gray-400 font-mono italic">
+                                        {profile.username.includes('@') ? `+${profile.username.split('@')[0]}` : profile.username}
+                                    </div>
                                 </div>
-                                <div className="text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="text-[#128c7e] opacity-0 group-hover:opacity-100 transition-opacity">
                                     <FaPaperPlane />
                                 </div>
                             </button>

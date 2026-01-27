@@ -33,19 +33,42 @@ const MainLayout: React.FC = () => {
                     <div className="flex gap-1">
                         <button
                             onClick={() => {
+                                const link = window.location.origin;
+                                navigator.clipboard.writeText(link);
+                                toast.success('Link de invitación copiado');
+                                window.open(`https://wa.me/?text=${encodeURIComponent('¡Hola! Únete a mi WhoApp para que chateemos: ' + link)}`, '_blank');
+                            }}
+                            className="p-2 text-[#25d366] hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-all"
+                            title="Invitar amigos"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
+                            </svg>
+                        </button>
+                        <button
+                            onClick={() => {
                                 supabase.auth.getUser().then(({ data }) => {
                                     const p = data.user?.email?.split('@')[0];
                                     const link = `${window.location.origin}/login?phone=${p}&pin=123456`;
-                                    navigator.clipboard.writeText(link);
-                                    toast.success('¡Link de acceso copiado!');
-                                    window.open(`https://wa.me/?text=${encodeURIComponent('¡Hola! Entra a mi chat en WhoApp usando este link directo: ' + link)}`, '_blank');
+
+                                    // Mostramos un modal o una alerta clara
+                                    const confirmKey = window.confirm(
+                                        "ESTO ES TU LLAVE PRIVADA.\n\n" +
+                                        "No se la envíes a nadie o podrán entrar a tu cuenta.\n" +
+                                        "¿Quieres copiarla para guardarla en tus notas?"
+                                    );
+
+                                    if (confirmKey) {
+                                        navigator.clipboard.writeText(link);
+                                        toast.success('¡Llave privada copiada!');
+                                    }
                                 });
                             }}
-                            className="p-2 text-[#128c7e] hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all"
-                            title="Compartir mi acceso"
+                            className="p-2 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-full transition-all"
+                            title="Mi Llave de Acceso (Privada)"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                                <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L7 17l-1 1-1 1H3v-2l1-1 1-1 1.257-1.257A6 6 0 1118 8zm-6-4a1 1 0 100 2h.01a1 1 0 100-2H12z" clipRule="evenodd" />
                             </svg>
                         </button>
                         <button
