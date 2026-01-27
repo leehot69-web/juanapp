@@ -64,6 +64,13 @@ const Login: React.FC = () => {
                 }
 
                 if (data.session) {
+                    const { user } = data.session;
+                    await supabase.from('profiles').upsert({
+                        id: user.id,
+                        username: user.email,
+                        full_name: user.user_metadata.full_name || cleanPhone,
+                        updated_at: new Date()
+                    });
                     toast.success('¡Número registrado! Bienvenido.');
                     navigate('/');
                 } else {
@@ -71,7 +78,7 @@ const Login: React.FC = () => {
                     setIsRegistering(false);
                 }
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
+                const { data: signInData, error } = await supabase.auth.signInWithPassword({
                     email: fakeEmail,
                     password: cleanPassword
                 });
@@ -81,6 +88,16 @@ const Login: React.FC = () => {
                         throw new Error('Número o clave incorrectos.');
                     }
                     throw error;
+                }
+
+                // Aseguramos que el perfil exista
+                if (signInData.user) {
+                    await supabase.from('profiles').upsert({
+                        id: signInData.user.id,
+                        username: signInData.user.email,
+                        full_name: signInData.user.user_metadata.full_name || cleanPhone,
+                        updated_at: new Date()
+                    });
                 }
 
                 toast.success('¡Hola de nuevo!');
