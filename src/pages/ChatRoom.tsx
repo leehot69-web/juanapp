@@ -478,30 +478,35 @@ const ChatRoom: React.FC = () => {
 
             <div className="flex-none w-full p-2 sm:p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t dark:border-gray-800">
                 <form onSubmit={handleSendMessage} className="w-full max-w-4xl mx-auto flex items-center gap-2">
-                    <div className="flex gap-1 mr-1">
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileUpload}
-                            className="hidden"
-                            accept="image/*"
-                        />
+                    <div className="flex items-center gap-0.5 sm:gap-1">
                         <button
                             type="button"
-                            onClick={handleOpenWhiteboard}
-                            className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90"
-                            title="Pizarra Interactiva"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                            className="p-2 text-gray-500 hover:text-primary transition-all active:scale-90"
                         >
-                            <FaPalette size={18} />
+                            <FaPlus size={18} />
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => startRecording('video')}
-                            className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90"
-                            title="Mensaje de Video"
-                        >
-                            <FaCamera size={18} />
-                        </button>
+
+                        <div className="hidden sm:flex items-center gap-1">
+                            <button
+                                type="button"
+                                onClick={handleOpenWhiteboard}
+                                className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90"
+                                title="Pizarra Interactiva"
+                            >
+                                <FaPalette size={18} />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => startRecording('video')}
+                                className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90"
+                                title="Mensaje de Video"
+                            >
+                                <FaCamera size={18} />
+                            </button>
+                        </div>
+
                         <button
                             type="button"
                             onClick={() => startRecording('audio')}
@@ -509,21 +514,6 @@ const ChatRoom: React.FC = () => {
                             title="Mensaje de Voz"
                         >
                             <FaMicrophone size={18} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploading}
-                            className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90"
-                        >
-                            <FaPlus size={18} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                            className={`p-2 transition-all active:scale-90 hidden sm:block ${showEmojiPicker ? 'text-primary' : 'text-gray-400 hover:text-primary'}`}
-                        >
-                            <FaSmile size={20} />
                         </button>
                     </div>
 
@@ -539,9 +529,12 @@ const ChatRoom: React.FC = () => {
                     <button
                         type="submit"
                         disabled={!newMessage.trim() || uploading}
-                        className="bg-primary text-gray-950 w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-green-400 transition-all active:scale-90 disabled:opacity-30 flex-shrink-0 shadow-[0_0_15px_rgba(0,255,0,0.5)] border-2 border-primary/20"
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all active:scale-90 flex-shrink-0 shadow-lg border-2 ${!newMessage.trim()
+                                ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 border-transparent shadow-none'
+                                : 'bg-primary text-gray-950 border-primary/20 shadow-primary/40'
+                            }`}
                     >
-                        <FaPaperPlane size={20} />
+                        <FaPaperPlane size={20} className={!newMessage.trim() ? 'opacity-40' : 'opacity-100'} />
                     </button>
                 </form>
             </div>
