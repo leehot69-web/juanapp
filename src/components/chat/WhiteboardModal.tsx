@@ -25,9 +25,10 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Altura infinita (estilo rollo de papel)
+        // Ajustar al ancho del contenedor real para evitar desbordamiento lateral
+        const rect = canvas.parentElement?.getBoundingClientRect();
         const CANVAS_HEIGHT = 5000;
-        canvas.width = window.innerWidth;
+        canvas.width = rect?.width || window.innerWidth;
         canvas.height = CANVAS_HEIGHT;
 
         // Load existing strokes
@@ -179,65 +180,56 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
         <div className="fixed inset-0 bg-white z-[60] flex flex-col overflow-hidden animate-in fade-in duration-300">
             {/* Toolbar */}
             <div className="h-20 bg-gray-50 dark:bg-gray-900 border-b flex items-center px-4 justify-between shadow-sm">
-                <div className="flex items-center gap-4">
-                    <button onClick={onClose} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-all">
-                        <FaTimes size={20} />
+                <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto scrollbar-hide py-2">
+                    <button onClick={onClose} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-all shrink-0">
+                        <FaTimes size={18} />
                     </button>
-                    <div className="h-8 w-[1px] bg-gray-200" />
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 shrink-0">
                         <button
                             onClick={() => setIsEraser(false)}
-                            className={`p-3 rounded-xl transition-all ${!isEraser ? 'bg-primary text-white shadow-lg' : 'text-gray-400 hover:bg-gray-100'}`}
+                            className={`p-2.5 rounded-xl transition-all ${!isEraser ? 'bg-primary text-white shadow-lg' : 'text-gray-400 hover:bg-gray-100'}`}
                         >
-                            <FaPencilAlt size={18} />
+                            <FaPencilAlt size={16} />
                         </button>
                         <button
                             onClick={() => setIsEraser(true)}
-                            className={`p-3 rounded-xl transition-all ${isEraser ? 'bg-primary text-white shadow-lg' : 'text-gray-400 hover:bg-gray-100'}`}
+                            className={`p-2.5 rounded-xl transition-all ${isEraser ? 'bg-primary text-white shadow-lg' : 'text-gray-400 hover:bg-gray-100'}`}
                         >
-                            <FaEraser size={18} />
+                            <FaEraser size={16} />
                         </button>
                     </div>
 
                     {!isEraser && (
-                        <div className="flex gap-2 ml-4">
+                        <div className="flex gap-1.5 px-2">
                             {[
-                                '#00ff00', // Neon Green
-                                '#00ffff', // Neon Cyan
-                                '#ff00ff', // Neon Pink
-                                '#ffff00', // Neon Yellow
-                                '#ffffff', // White
-                                '#ff4d4d'  // Sweet Red
+                                '#00ff00', '#00ffff', '#ff00ff', '#ffff00', '#ffffff', '#ff4d4d'
                             ].map(c => (
                                 <button
                                     key={c}
                                     onClick={() => setColor(c)}
-                                    className={`w-8 h-8 rounded-full border-2 transition-all ${color === c ? 'border-primary scale-125' : 'border-transparent'}`}
-                                    style={{
-                                        backgroundColor: c,
-                                        boxShadow: color === c ? `0 0 10px ${c}` : 'none'
-                                    }}
+                                    className={`w-7 h-7 rounded-full border-2 transition-all shrink-0 ${color === c ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'border-transparent'}`}
+                                    style={{ backgroundColor: c }}
                                 />
                             ))}
                         </div>
                     )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 shrink-0">
                     <button
                         onClick={handleSendAsImage}
-                        className="bg-primary text-white px-4 py-2 rounded-xl flex items-center gap-2 font-black text-xs hover:bg-green-600 transition-all active:scale-95 shadow-lg shadow-primary/30"
-                        title="Enviar dibujo al chat"
+                        className="bg-primary text-white p-2.5 sm:px-4 sm:py-2 rounded-xl flex items-center gap-2 font-black text-xs hover:bg-green-600 transition-all active:scale-95 shadow-lg shadow-primary/30"
+                        title="Enviar al chat"
                     >
-                        <FaSave /> <span className="hidden sm:inline">ENVIAR AL CHAT</span>
+                        <FaSave size={16} /> <span className="hidden md:inline">ENVIAR</span>
                     </button>
                     <button
                         onClick={handleClear}
-                        className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                        title="Limpiar todo"
+                        className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        title="Limpiar"
                     >
-                        <FaTrash size={18} />
+                        <FaTrash size={16} />
                     </button>
                 </div>
             </div>
