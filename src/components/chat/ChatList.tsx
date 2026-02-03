@@ -1,77 +1,49 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaUserCircle, FaCommentDots } from 'react-icons/fa';
-
-interface Chat {
-    id: string;
-    name: string;
-    is_group: boolean;
-    last_message?: string;
-    last_message_time?: string;
-    other_user?: {
-        username: string;
-        avatar_url: string;
-    };
-}
+import { chatService } from '../../services/chatService';
+import { userService } from '../../services/userService';
+import { FaUserCircle, FaUsers, FaSearch, FaEllipsisV } from 'react-icons/fa';
+import { format } from 'date-fns';
+import { supabase } from '../../lib/supabase';
 
 const ChatList: React.FC = () => {
-    const [chats, setChats] = useState<Chat[]>([]);
+    const [chats, setChats] = useState<any[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const { id: activeChatId } = useParams();
 
     const fetchChats = async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            if (!currentUser) return;
 
-            // Complex query to get chats with participants and last message
-            // Simplified for now: Get chats where user is participant
-            const { data, error } = await supabase
-                .from('chat_participants')
-                .select(`
-          chat_id,
-          chats (
-            id,
-            name,
-            is_group
-          )
-        `)
-                .eq('user_id', user.id);
+            const myChats = await chatService.getMyChats();
 
-            if (error) throw error;
+            const enrichedChats = await Promise.all(myChats.map(async (chat) => {
+                let displayInfo = {
+                    name: chat.name || 'Chat',
+                    avatar_url: null as string | null,
+                    is_group: chat.is_group
+                };
 
-            const formattedChats: Chat[] = await Promise.all((data || []).map(async (item: any) => {
-                const chat = item.chats;
-
-                // If not a group, find the other participant's name
-                let otherUser = null;
                 if (!chat.is_group) {
-                    const { data: participants } = await supabase
-                        .from('chat_participants')
-                        .select(`
-              user_id,
-              profiles (username, avatar_url)
-            `)
-                        .eq('chat_id', chat.id)
-                        .neq('user_id', user.id)
-                        .single();
-
-                    if (participants) {
-                        otherUser = (participants as any).profiles;
+                    const participants = await chatService.getParticipants(chat.id);
+                    // Filter out the current user to get the other person
+                    const other = participants.find(p => p !== null && p.id !== currentUser.id);
+                    if (other) {
+                        displayInfo.name = other.full_name || other.username;
+                        displayInfo.avatar_url = other.avatar_url;
                     }
                 }
 
                 return {
-                    id: chat.id,
-                    name: chat.name || otherUser?.username || 'Chat',
-                    is_group: chat.is_group,
-                    other_user: otherUser
+                    ...chat,
+                    displayInfo
                 };
             }));
 
-            setChats(formattedChats);
+            setChats(enrichedChats);
         } catch (error) {
             console.error('Error fetching chats:', error);
         } finally {
@@ -81,71 +53,94 @@ const ChatList: React.FC = () => {
 
     useEffect(() => {
         fetchChats();
-
-        // Subscribe to new messages or chat changes
-        const subscription = supabase
-            .channel('public:chat_participants')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_participants' }, () => {
-                fetchChats();
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(subscription);
-        };
+        // Here we could add a real-time subscription for new chats
     }, []);
 
-    if (loading) return <div className="p-4 text-center text-gray-500">Cargando chats...</div>;
+    const filteredChats = chats.filter(chat =>
+        chat.displayInfo.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-    if (chats.length === 0) {
-        return (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gray-50/50 dark:bg-gray-800/50">
-                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4 text-primary">
-                    <FaCommentDots size={40} />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Sin chats</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-[200px]">
-                    Haz clic en el icono superior para iniciar una conversación.
-                </p>
-            </div>
-        );
-    }
+    if (loading) return (
+        <div className="flex-1 flex flex-col items-center justify-center space-y-4 bg-gray-50 dark:bg-gray-900/50">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Sincronizando...</p>
+        </div>
+    );
 
     return (
-        <div className="flex flex-col h-full">
-            <div className="flex-1 overflow-y-auto">
-                {chats.map((chat) => (
-                    <div
-                        key={chat.id}
-                        onClick={() => navigate(`/chat/${chat.id}`)}
-                        className={`flex items-center p-3 cursor-pointer hover:bg-gray-100 transition-colors border-b dark:hover:bg-gray-700 dark:border-gray-700 ${activeChatId === chat.id ? 'bg-gray-200 dark:bg-gray-600' : ''
-                            }`}
-                    >
-                        <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 mr-3 overflow-hidden shadow-sm">
-                            {chat.other_user?.avatar_url ? (
-                                <img src={chat.other_user.avatar_url} alt={chat.name} className="w-full h-full object-cover" />
-                            ) : (
-                                <FaUserCircle size={32} />
-                            )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-baseline">
-                                <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                    {chat.name}
-                                </h3>
-                                <span className="text-xs text-gray-500">
-                                    {chat.last_message_time || ''}
-                                </span>
-                            </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                                {chat.last_message || 'Haz clic para chatear'}
-                            </p>
-                        </div>
-                    </div>
-                ))}
+        <div className="flex flex-col h-full bg-white dark:bg-gray-800">
+            {/* Search Bar */}
+            <div className="p-4 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
+                <div className="relative group">
+                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors text-xs" />
+                    <input
+                        type="text"
+                        placeholder="Buscar conversaciones..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    />
+                </div>
             </div>
 
-            {/* User Profile Info Footer */}
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
+                {filteredChats.length === 0 ? (
+                    <div className="p-10 text-center">
+                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                            <FaSearch size={24} />
+                        </div>
+                        <p className="text-sm font-bold text-gray-500">No se encontraron chats</p>
+                        <p className="text-[10px] text-gray-400 mt-1">Intenta con otro nombre o crea uno nuevo</p>
+                    </div>
+                ) : (
+                    filteredChats.map((chat) => (
+                        <div
+                            key={chat.id}
+                            onClick={() => navigate(`/chat/${chat.id}`)}
+                            className={`flex items-center p-4 cursor-pointer transition-all border-b dark:border-gray-700/50 group active:scale-[0.99] ${activeChatId === chat.id
+                                ? 'bg-primary/5 border-l-4 border-l-primary'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'
+                                }`}
+                        >
+                            <div className="relative">
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-sm overflow-hidden border-2 border-white dark:border-gray-700 ${chat.displayInfo.is_group
+                                    ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                                    : 'bg-gradient-to-br from-green-400 to-primary'
+                                    }`}>
+                                    {chat.displayInfo.avatar_url ? (
+                                        <img src={chat.displayInfo.avatar_url} alt={chat.displayInfo.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        chat.displayInfo.is_group ? <FaUsers size={28} /> : <FaUserCircle size={32} />
+                                    )}
+                                </div>
+                                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full shadow-sm" />
+                            </div>
+
+                            <div className="flex-1 min-w-0 ml-4">
+                                <div className="flex justify-between items-center mb-1">
+                                    <h3 className={`font-black truncate text-sm tracking-tight ${activeChatId === chat.id ? 'text-primary' : 'text-gray-900 dark:text-gray-100'
+                                        }`}>
+                                        {chat.displayInfo.name}
+                                    </h3>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase">
+                                        {chat.created_at ? format(new Date(chat.created_at), 'HH:mm') : ''}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate pr-4">
+                                        {chat.displayInfo.is_group ? 'Grupo' : 'Chat Individual'} • Pulsa para ver
+                                    </p>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <FaEllipsisV className="text-gray-300 text-[10px]" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Current User Profile */}
             <CurrentUserProfile />
         </div>
     );
@@ -155,33 +150,30 @@ const CurrentUserProfile: React.FC = () => {
     const [profile, setProfile] = useState<any>(null);
 
     useEffect(() => {
-        const fetchMe = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-                setProfile(data);
-            }
-        };
-        fetchMe();
+        userService.getCurrentProfile().then(setProfile);
     }, []);
 
     if (!profile) return null;
 
     return (
-        <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center shadow-lg">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary mr-3 overflow-hidden border-2 border-white dark:border-gray-700">
-                {profile.avatar_url ? (
-                    <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
-                ) : (
-                    <FaUserCircle size={24} />
-                )}
+        <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex items-center shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-green-600 p-[2px] shadow-md group">
+                <div className="w-full h-full rounded-2xl bg-white dark:bg-gray-800 flex items-center justify-center overflow-hidden">
+                    {profile.avatar_url ? (
+                        <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                    ) : (
+                        <FaUserCircle size={28} className="text-primary" />
+                    )}
+                </div>
             </div>
-            <div className="flex-1 min-w-0">
-                <p className="text-xs font-black text-primary uppercase tracking-tighter">Mi Perfil</p>
-                <p className="font-bold text-gray-900 dark:text-gray-100 truncate">
-                    {profile.full_name || profile.username}
-                </p>
-                <p className="text-[10px] text-gray-500 font-mono italic truncate">@{profile.username}</p>
+            <div className="flex-1 min-w-0 ml-3">
+                <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none mb-1">Tu Perfil</span>
+                    <p className="font-bold text-gray-900 dark:text-gray-100 truncate text-sm tracking-tight">
+                        {profile.full_name || profile.username}
+                    </p>
+                    <p className="text-[10px] text-gray-400 font-mono italic">@{profile.username}</p>
+                </div>
             </div>
         </div>
     );
