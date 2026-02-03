@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { messageService, type Message } from '../services/messageService';
 import { chatService } from '../services/chatService';
-import { FaPaperPlane, FaSmile, FaPlus, FaArrowLeft, FaUserCircle, FaUsers, FaInfoCircle, FaPalette } from 'react-icons/fa';
+import { FaPaperPlane, FaSmile, FaPlus, FaArrowLeft, FaUserCircle, FaUsers, FaInfoCircle, FaPalette, FaMicrophone, FaCamera, FaStop } from 'react-icons/fa';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
@@ -48,6 +48,79 @@ const ChatRoom: React.FC = () => {
     const [uploading, setUploading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [recordingType, setRecordingType] = useState<'audio' | 'video' | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(0);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const videoPreviewRef = useRef<HTMLVideoElement>(null);
+    const chunksRef = useRef<Blob[]>([]);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+    const startRecording = async (type: 'audio' | 'video') => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: type === 'video'
+            });
+
+            if (type === 'video' && videoPreviewRef.current) {
+                videoPreviewRef.current.srcObject = stream;
+            }
+
+            const recorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = recorder;
+            chunksRef.current = [];
+
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunksRef.current.push(e.data);
+            };
+
+            recorder.onstop = async () => {
+                const blob = new Blob(chunksRef.current, { type: type === 'video' ? 'video/webm' : 'audio/webm' });
+                stream.getTracks().forEach(track => track.stop());
+
+                const file = new File([blob], `media_${Date.now()}.${type === 'video' ? 'webm' : 'webm'}`, { type: blob.type });
+                const loadingToast = toast.loading(`Enviando ${type === 'video' ? 'video' : 'audio'}...`);
+
+                try {
+                    const url = await storageService.uploadFile(file);
+                    await messageService.sendMessage(chatId!, '', type, url);
+                    toast.success(`${type === 'video' ? 'Video' : 'Audio'} enviado`, { id: loadingToast });
+                } catch (error) {
+                    toast.error('Error al enviar media', { id: loadingToast });
+                }
+
+                setRecordingType(null);
+                setIsRecording(false);
+            };
+
+            recorder.start();
+            setRecordingType(type);
+            setIsRecording(true);
+            const duration = type === 'video' ? 15 : 10;
+            setTimeLeft(duration);
+
+            timerRef.current = setInterval(() => {
+                setTimeLeft(prev => {
+                    if (prev <= 1) {
+                        stopRecording();
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+        } catch (err) {
+            toast.error('No se pudo acceder a la cámara o micrófono');
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            mediaRecorderRef.current.stop();
+        }
+        if (timerRef.current) clearInterval(timerRef.current);
+    };
 
     // Usar useRef para el audio para evitar que se recree en cada render
     const audioRef = useRef<HTMLAudioElement>(new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3'));
@@ -307,6 +380,18 @@ const ChatRoom: React.FC = () => {
                                                         Unirse ahora
                                                     </button>
                                                 </div>
+                                            ) : msg.type === 'video' ? (
+                                                <div className="rounded-xl overflow-hidden mb-1 -m-1 bg-black aspect-video flex items-center justify-center">
+                                                    <video
+                                                        src={msg.media_url}
+                                                        controls
+                                                        className="h-full max-h-[300px] w-auto"
+                                                    />
+                                                </div>
+                                            ) : msg.type === 'audio' ? (
+                                                <div className="py-2 px-1 min-w-[200px]">
+                                                    <audio src={msg.media_url} controls className="w-full h-8" />
+                                                </div>
                                             ) : (
                                                 msg.content
                                             )}
@@ -360,6 +445,33 @@ const ChatRoom: React.FC = () => {
                 </div>
             )}
 
+            {/* Recording Overlay */}
+            {isRecording && (
+                <div className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center text-white backdrop-blur-xl animate-in fade-in duration-300">
+                    <div className="relative w-[90%] max-w-sm aspect-video bg-gray-900 rounded-3xl overflow-hidden border-4 border-primary/50 shadow-2xl shadow-primary/20 mb-8">
+                        {recordingType === 'video' ? (
+                            <video ref={videoPreviewRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center font-black text-primary text-xl tracking-[0.3em] uppercase">
+                                GRABANDO AUDIO
+                            </div>
+                        )}
+                        <div className="absolute top-4 right-4 bg-red-500 px-3 py-1 rounded-full text-[10px] font-black animate-pulse flex items-center gap-2 text-white">
+                            <div className="w-2 h-2 bg-white rounded-full" /> {timeLeft}s
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={stopRecording}
+                        className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-all active:scale-95 shadow-xl shadow-red-500/40 text-white"
+                    >
+                        <FaStop size={30} />
+                    </button>
+                    <p className="mt-4 font-black text-[10px] uppercase tracking-widest text-white/60">Grabando {recordingType === 'video' ? 'Video (15s)' : 'Audio (10s)'}...</p>
+                </div>
+            )}
+
             {/* Input Area - Fijo abajo */}
             <div className="flex-none p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t dark:border-gray-800">
                 <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex items-center gap-2">
@@ -378,6 +490,22 @@ const ChatRoom: React.FC = () => {
                             title="Pizarra Interactiva"
                         >
                             <FaPalette size={18} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => startRecording('video')}
+                            className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90"
+                            title="Mensaje de Video"
+                        >
+                            <FaCamera size={18} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => startRecording('audio')}
+                            className={`p-2 transition-all active:scale-90 ${recordingType === 'audio' ? 'text-red-500 animate-pulse' : 'text-gray-400 hover:text-primary'}`}
+                            title="Mensaje de Voz"
+                        >
+                            <FaMicrophone size={18} />
                         </button>
                         <button
                             type="button"
