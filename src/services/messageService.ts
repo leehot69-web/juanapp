@@ -5,7 +5,7 @@ export interface Message {
     chat_id: string;
     sender_id: string;
     content: string;
-    type: 'text' | 'image' | 'video' | 'audio' | 'file';
+    type: 'text' | 'image' | 'video' | 'audio' | 'file' | 'sticker';
     media_url?: string;
     created_at: string;
     profiles?: {

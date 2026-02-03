@@ -7,9 +7,33 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 
-import EmojiPicker, { Theme } from 'emoji-picker-react';
+import EmojiPicker, { Theme, EmojiStyle } from 'emoji-picker-react';
 import { storageService } from '../services/storageService';
 import WhiteboardModal from '../components/chat/WhiteboardModal';
+
+// Helper para detectar si un mensaje son solo emojis (máximo 3)
+const isEmojiOnly = (text: string) => {
+    const emojiRegex = /^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])+$/g;
+    const cleanText = text.replace(/\s/g, '');
+    if (emojiRegex.test(cleanText)) {
+        // Contar cuántos emojis hay (aproximado por longitud de caracteres especiales)
+        const emojiCount = Array.from(cleanText).length;
+        return emojiCount <= 3;
+    }
+    return false;
+};
+
+// Stickers 3D estilo Line/WhatsApp (usando Microsoft Fluent Emojis)
+const STICKERS_3D = [
+    { name: 'Risa', url: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Grinning%20Squinting%20Face.png' },
+    { name: 'Amor', url: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Smiling%20Face%20with%20Heart-Eyes.png' },
+    { name: 'Llanto', url: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Loudly%20Crying%20Face.png' },
+    { name: 'Fuego', url: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Fire.png' },
+    { name: 'Bailando', url: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Man%20Dancing.png' },
+    { name: 'Pensando', url: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Thinking%20Face.png' },
+    { name: 'Sorpresa', url: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Astonished%20Face.png' },
+    { name: 'Fiesta', url: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Partying%20Face.png' },
+];
 
 const ChatRoom: React.FC = () => {
     const { id: chatId } = useParams();
@@ -218,12 +242,17 @@ const ChatRoom: React.FC = () => {
                                         </span>
                                     )}
                                     <div
-                                        className={`p-3 relative shadow-sm ${isOwn
-                                            ? 'bg-primary text-white rounded-2xl rounded-tr-none'
-                                            : 'bg-white dark:bg-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none'
+                                        className={`p-3 relative shadow-sm ${msg.type === 'sticker'
+                                                ? 'bg-transparent shadow-none'
+                                                : isEmojiOnly(msg.content)
+                                                    ? 'bg-transparent shadow-none !p-0'
+                                                    : isOwn
+                                                        ? 'bg-primary text-white rounded-2xl rounded-tr-none'
+                                                        : 'bg-white dark:bg-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none'
                                             }`}
                                     >
-                                        <div className="text-[14px] leading-relaxed break-words font-medium">
+                                        <div className={`leading-relaxed break-words font-medium ${isEmojiOnly(msg.content) ? 'text-5xl animate-bounce-subtle' : 'text-[14px]'
+                                            }`}>
                                             {msg.type === 'image' ? (
                                                 <div className="rounded-xl overflow-hidden mb-1 -m-1">
                                                     <img
@@ -233,6 +262,12 @@ const ChatRoom: React.FC = () => {
                                                         onClick={() => window.open(msg.media_url, '_blank')}
                                                     />
                                                 </div>
+                                            ) : msg.type === 'sticker' ? (
+                                                <img
+                                                    src={msg.media_url}
+                                                    alt="Sticker"
+                                                    className="w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-xl animate-bounce-subtle"
+                                                />
                                             ) : (
                                                 msg.content
                                             )}
@@ -255,13 +290,32 @@ const ChatRoom: React.FC = () => {
                 </div>
             </div>
 
-            {/* Emoji Picker Overlay */}
+            {/* Emoji & Sticker Picker Overlay */}
             {showEmojiPicker && (
-                <div className="absolute bottom-24 left-4 z-50 animate-in slide-in-from-bottom-5 duration-300">
+                <div className="absolute bottom-24 left-4 z-50 animate-in slide-in-from-bottom-5 duration-300 flex flex-col gap-2">
+                    {/* Stickers Quick Tray */}
+                    <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md p-2 rounded-2xl shadow-xl flex gap-2 overflow-x-auto max-w-[350px] border border-gray-200 dark:border-gray-800">
+                        {STICKERS_3D.map(sticker => (
+                            <button
+                                key={sticker.name}
+                                onClick={async () => {
+                                    if (chatId) {
+                                        await messageService.sendMessage(chatId, '', 'sticker', sticker.url);
+                                        setShowEmojiPicker(false);
+                                    }
+                                }}
+                                className="w-12 h-12 flex-shrink-0 hover:scale-110 active:scale-95 transition-all p-1 bg-gray-50 dark:bg-gray-800 rounded-xl"
+                            >
+                                <img src={sticker.url} alt={sticker.name} className="w-full h-full object-contain" />
+                            </button>
+                        ))}
+                    </div>
+
                     <EmojiPicker
                         onEmojiClick={onEmojiClick}
                         theme={Theme.AUTO}
-                        width={300}
+                        emojiStyle={EmojiStyle.NATIVE}
+                        width={350}
                         height={400}
                     />
                 </div>
