@@ -197,10 +197,14 @@ const ChatRoom: React.FC = () => {
 
         const subscription = messageService.subscribeToMessages(chatId, (msg) => {
             if (msg.sender_id !== currentUserId) {
-                // Play sound with a small delay or gesture check
-                audioRef.current.play().catch(() => {
-                    console.log('Interacción necesaria para el sonido');
-                });
+                // Refrescar audio para asegurar que suena
+                const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+                notificationSound.play().catch(e => console.log('Audio error:', e));
+
+                // Notificación tipo Toast si el usuario no está mirando al fondo
+                if (document.hidden) {
+                    toast(`Nuevo mensaje de ${msg.profiles?.username || 'Chat'}`, { icon: '💬' });
+                }
             }
             setMessages(prev => {
                 if (prev.find(m => m.id === msg.id)) return prev;
@@ -535,9 +539,9 @@ const ChatRoom: React.FC = () => {
                     <button
                         type="submit"
                         disabled={!newMessage.trim() || uploading}
-                        className="bg-primary text-gray-950 w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-green-600 transition-all hover:shadow-lg hover:shadow-primary/20 active:scale-90 disabled:opacity-50 disabled:grayscale disabled:scale-100 flex-shrink-0"
+                        className="bg-primary text-gray-950 w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-green-400 transition-all active:scale-90 disabled:opacity-30 flex-shrink-0 shadow-[0_0_15px_rgba(0,255,0,0.5)] border-2 border-primary/20"
                     >
-                        <FaPaperPlane size={16} />
+                        <FaPaperPlane size={20} />
                     </button>
                 </form>
             </div>

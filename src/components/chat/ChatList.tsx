@@ -5,6 +5,7 @@ import { userService } from '../../services/userService';
 import { FaUserCircle, FaUsers, FaSearch, FaEllipsisV } from 'react-icons/fa';
 import { format } from 'date-fns';
 import { supabase } from '../../lib/supabase';
+import toast from 'react-hot-toast';
 
 const ChatList: React.FC = () => {
     const [chats, setChats] = useState<any[]>([]);
@@ -96,16 +97,47 @@ const ChatList: React.FC = () => {
                             ...prev,
                             [newMsg.chat_id]: (prev[newMsg.chat_id] || 0) + 1
                         }));
-                        // También refrescar la lista para actualizar la previsualización y el orden
+
+                        // Sonido global de mensaje
+                        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+                        audio.play().catch(() => { });
+
+                        // Notificación visual flotante (Toast)
+                        toast('Nuevo mensaje recibido', {
+                            icon: '💬',
+                            duration: 3000,
+                            position: 'top-right',
+                            style: {
+                                background: '#00ff00',
+                                color: '#000',
+                                fontWeight: 'bold',
+                                fontSize: '12px'
+                            }
+                        });
+
+                        // Vibración si es móvil
+                        if ('vibrate' in navigator) navigator.vibrate(100);
+
                         fetchChats();
                     }
                 }
             )
             .subscribe();
 
+        // 3. Suscripción a la tabla de chats (para grupos)
+        const globalChatSub = supabase
+            .channel('public:chats')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'chats' },
+                () => fetchChats()
+            )
+            .subscribe();
+
         return () => {
             supabase.removeChannel(chatSub);
             supabase.removeChannel(msgSub);
+            supabase.removeChannel(globalChatSub);
         };
     }, [activeChatId]);
 
@@ -157,10 +189,10 @@ const ChatList: React.FC = () => {
                         <div
                             key={chat.id}
                             onClick={() => navigate(`/chat/${chat.id}`)}
-                            className={`flex items-center p-4 cursor-pointer transition-all border-b dark:border-gray-700/50 group active:scale-[0.99] ${activeChatId === chat.id
-                                ? 'bg-primary/5 border-l-4 border-l-primary'
+                            className={`flex items-center p-4 cursor-pointer transition-all border-b dark:border-gray-700/50 group active:scale-[0.98] ${activeChatId === chat.id
+                                ? 'bg-primary/10 border-l-4 border-l-primary'
                                 : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'
-                                }`}
+                                } min-h-[85px]`}
                         >
                             <div className="relative">
                                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-sm overflow-hidden border-2 border-white dark:border-gray-700 ${chat.displayInfo.is_group
