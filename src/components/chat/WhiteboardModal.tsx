@@ -25,9 +25,10 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Set canvas size to window size
+        // Altura infinita (estilo rollo de papel)
+        const CANVAS_HEIGHT = 5000;
         canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight - 80;
+        canvas.height = CANVAS_HEIGHT;
 
         // Load existing strokes
         const loadInitialStrokes = async () => {
@@ -141,10 +142,36 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
                 await whiteboardService.clearWhiteboard(chatId);
                 const canvas = canvasRef.current;
                 const ctx = canvas?.getContext('2d');
-                ctx?.clearRect(0, 0, canvas?.width || 0, canvas?.height || 0);
+                if (canvas && ctx) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
             } catch (error) {
                 toast.error('Error al limpiar');
             }
+        }
+    };
+
+    const handleSendAsImage = async () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const toastId = toast.loading('Enviando dibujo al chat...');
+        try {
+            // Convertir canvas a blob
+            const blob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), 'image/png'));
+            const file = new File([blob], `whiteboard_${Date.now()}.png`, { type: 'image/png' });
+
+            // Subir y enviar como mensaje de imagen
+            const { messageService } = await import('../../services/messageService');
+            const { storageService } = await import('../../services/storageService');
+
+            const url = await storageService.uploadFile(file);
+            await messageService.sendMessage(chatId, '', 'image', url);
+
+            toast.success('¡Dibujo enviado!', { id: toastId });
+            onClose();
+        } catch (error) {
+            toast.error('Error al enviar dibujo', { id: toastId });
         }
     };
 
@@ -175,12 +202,22 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
 
                     {!isEraser && (
                         <div className="flex gap-2 ml-4">
-                            {['#25d366', '#34b7f1', '#ff5252', '#ffeb3b', '#9c27b0', '#000000'].map(c => (
+                            {[
+                                '#00ff00', // Neon Green
+                                '#00ffff', // Neon Cyan
+                                '#ff00ff', // Neon Pink
+                                '#ffff00', // Neon Yellow
+                                '#ffffff', // White
+                                '#ff4d4d'  // Sweet Red
+                            ].map(c => (
                                 <button
                                     key={c}
                                     onClick={() => setColor(c)}
                                     className={`w-8 h-8 rounded-full border-2 transition-all ${color === c ? 'border-primary scale-125' : 'border-transparent'}`}
-                                    style={{ backgroundColor: c }}
+                                    style={{
+                                        backgroundColor: c,
+                                        boxShadow: color === c ? `0 0 10px ${c}` : 'none'
+                                    }}
                                 />
                             ))}
                         </div>
@@ -188,6 +225,13 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleSendAsImage}
+                        className="bg-primary text-white px-4 py-2 rounded-xl flex items-center gap-2 font-black text-xs hover:bg-green-600 transition-all active:scale-95 shadow-lg shadow-primary/30"
+                        title="Enviar dibujo al chat"
+                    >
+                        <FaSave /> <span className="hidden sm:inline">ENVIAR AL CHAT</span>
+                    </button>
                     <button
                         onClick={handleClear}
                         className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all"
@@ -198,8 +242,8 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
                 </div>
             </div>
 
-            {/* Canvas Area */}
-            <div className="flex-1 relative bg-white touch-none">
+            {/* Canvas Area with Scroll (Paper Roll Style) */}
+            <div className="flex-1 relative bg-[#0b141a] overflow-y-auto overflow-x-hidden scrollbar-hide">
                 <canvas
                     ref={canvasRef}
                     onMouseDown={startDrawing}
@@ -209,12 +253,17 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
                     onTouchStart={startDrawing}
                     onTouchMove={draw}
                     onTouchEnd={stopDrawing}
-                    className="cursor-crosshair w-full h-full"
+                    className="cursor-crosshair bg-[#0b141a]"
+                    style={{
+                        filter: isEraser ? 'none' : 'drop-shadow(0 0 5px currentColor)',
+                    }}
                 />
 
                 {/* Overlay UI hints */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest pointer-events-none">
-                    Pizarra Interactiva en Vivo
+                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none">
+                    <div className="bg-primary/20 backdrop-blur-md text-primary px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/30">
+                        Rollo Infinito: Desliza para escribir más
+                    </div>
                 </div>
             </div>
         </div>
