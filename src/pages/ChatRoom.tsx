@@ -54,8 +54,8 @@ const ChatRoom: React.FC = () => {
                 }
                 setChatInfo(displayInfo);
             }
-        } catch (e) {
-            console.error('Error fetching chat info:', e);
+        } catch (error) {
+            console.error('Error fetching chat info:', error);
         }
     };
 
@@ -185,8 +185,8 @@ const ChatRoom: React.FC = () => {
                                     )}
                                     <div
                                         className={`p-3 relative shadow-sm ${isOwn
-                                                ? 'bg-primary text-white rounded-2xl rounded-tr-none'
-                                                : 'bg-white dark:bg-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none'
+                                            ? 'bg-primary text-white rounded-2xl rounded-tr-none'
+                                            : 'bg-white dark:bg-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none'
                                             }`}
                                     >
                                         <div className="text-[14px] leading-relaxed break-words font-medium">
