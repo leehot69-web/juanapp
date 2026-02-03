@@ -7,6 +7,9 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 
+import EmojiPicker, { Theme } from 'emoji-picker-react';
+import { storageService } from '../services/storageService';
+
 const ChatRoom: React.FC = () => {
     const { id: chatId } = useParams();
     const navigate = useNavigate();
@@ -15,7 +18,10 @@ const ChatRoom: React.FC = () => {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [chatInfo, setChatInfo] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Usar useRef para el audio para evitar que se recree en cada render
     const audioRef = useRef<HTMLAudioElement>(new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3'));
@@ -102,19 +108,45 @@ const ChatRoom: React.FC = () => {
         }
     }, [messages]);
 
-    const handleSendMessage = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSendMessage = async (e?: React.FormEvent) => {
+        e?.preventDefault();
         if (!newMessage.trim() || !chatId) return;
 
         const content = newMessage.trim();
         setNewMessage('');
+        setShowEmojiPicker(false);
 
         try {
             await messageService.sendMessage(chatId, content);
         } catch (error) {
             toast.error('Error al enviar mensaje');
-            setNewMessage(content); // Restore message
+            setNewMessage(content);
         }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !chatId) return;
+
+        setUploading(true);
+        const loadingToast = toast.loading('Subiendo imagen...');
+
+        try {
+            const publicUrl = await storageService.uploadFile(file);
+            await messageService.sendMessage(chatId, '', 'image', publicUrl);
+            toast.success('Imagen enviada');
+        } catch (error) {
+            toast.error('Error al subir imagen');
+            console.error(error);
+        } finally {
+            setUploading(false);
+            toast.dismiss(loadingToast);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const onEmojiClick = (emojiData: any) => {
+        setNewMessage(prev => prev + emojiData.emoji);
     };
 
     if (loading) return (
@@ -190,7 +222,18 @@ const ChatRoom: React.FC = () => {
                                             }`}
                                     >
                                         <div className="text-[14px] leading-relaxed break-words font-medium">
-                                            {msg.content}
+                                            {msg.type === 'image' ? (
+                                                <div className="rounded-lg overflow-hidden mb-1">
+                                                    <img
+                                                        src={msg.media_url}
+                                                        alt="Mensaje de imagen"
+                                                        className="max-w-full h-auto object-cover max-h-60"
+                                                        onClick={() => window.open(msg.media_url, '_blank')}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                msg.content
+                                            )}
                                         </div>
                                         <div className={`text-[9px] mt-1.5 font-bold flex items-center justify-end gap-1 ${isOwn ? 'text-white/60' : 'text-gray-400'
                                             }`}>
@@ -210,14 +253,42 @@ const ChatRoom: React.FC = () => {
                 </div>
             </div>
 
+            {/* Emoji Picker Overlay */}
+            {showEmojiPicker && (
+                <div className="absolute bottom-24 left-4 z-50 animate-in slide-in-from-bottom-5 duration-300">
+                    <EmojiPicker
+                        onEmojiClick={onEmojiClick}
+                        theme={Theme.AUTO}
+                        width={300}
+                        height={400}
+                    />
+                </div>
+            )}
+
             {/* Input Area - Fijo abajo */}
             <div className="flex-none p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t dark:border-gray-800">
                 <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex items-center gap-2">
                     <div className="flex gap-1 mr-1">
-                        <button type="button" className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            className="hidden"
+                            accept="image/*"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                            className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90"
+                        >
                             <FaPlus size={18} />
                         </button>
-                        <button type="button" className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90 hidden sm:block">
+                        <button
+                            type="button"
+                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                            className={`p-2 transition-all active:scale-90 hidden sm:block ${showEmojiPicker ? 'text-primary' : 'text-gray-400 hover:text-primary'}`}
+                        >
                             <FaSmile size={20} />
                         </button>
                     </div>
@@ -226,13 +297,14 @@ const ChatRoom: React.FC = () => {
                         type="text"
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
+                        onFocus={() => setShowEmojiPicker(false)}
                         placeholder="Escribe un mensaje seguro..."
                         className="flex-1 py-3 px-5 rounded-2xl border-2 border-transparent focus:border-primary/30 bg-gray-100 dark:bg-gray-800 dark:text-white outline-none transition-all text-sm font-medium shadow-inner"
                     />
 
                     <button
                         type="submit"
-                        disabled={!newMessage.trim()}
+                        disabled={!newMessage.trim() || uploading}
                         className="bg-primary text-white w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-green-600 transition-all hover:shadow-lg hover:shadow-primary/20 active:scale-90 disabled:opacity-50 disabled:grayscale disabled:scale-100"
                     >
                         <FaPaperPlane size={16} />
