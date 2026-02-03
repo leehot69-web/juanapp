@@ -1,19 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useParams } from 'react-router-dom';
-import { FaCommentDots, FaSignOutAlt } from 'react-icons/fa';
+import { FaCommentDots, FaUserCircle, FaDownload } from 'react-icons/fa';
 import NewChatModal from '../chat/NewChatModal';
 import ChatList from '../chat/ChatList';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
+import ProfileModal from './ProfileModal';
 
 import AdminDashboard from '../../pages/AdminDashboard';
 
 const MainLayout: React.FC = () => {
     const [isNewChatOpen, setIsNewChatOpen] = useState(false);
     const [isAdminOpen, setIsAdminOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [logoClicks, setLogoClicks] = useState(0);
     const { id } = useParams();
     const isChatActive = !!id;
+
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) {
+                setCurrentUser(user);
+                // Cargar perfil para el avatar
+                supabase.from('profiles').select('*').eq('id', user.id).single().then(({ data }) => {
+                    if (data) setCurrentUser({ ...user, profile: data });
+                });
+            }
+        });
+
+        // PWA Install Prompt
+        const handler = (e: any) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
 
     const handleLogoClick = () => {
         const newClicks = logoClicks + 1;
@@ -28,10 +61,6 @@ const MainLayout: React.FC = () => {
                 toast.error('Clave incorrecta');
             }
         }
-    };
-
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
     };
 
     const handleChatCreated = () => {
@@ -53,6 +82,16 @@ const MainLayout: React.FC = () => {
                         JuanChat
                     </h1>
                     <div className="flex gap-1">
+                        {deferredPrompt && (
+                            <button
+                                onClick={handleInstallClick}
+                                className="p-2 text-primary hover:bg-primary/10 rounded-full transition-all flex items-center gap-2"
+                                title="Instalar Aplicación"
+                            >
+                                <FaDownload size={18} />
+                                <span className="hidden lg:inline text-xs font-black uppercase tracking-tighter">Instalar App</span>
+                            </button>
+                        )}
                         <button
                             onClick={() => {
                                 const link = window.location.origin;
@@ -72,14 +111,11 @@ const MainLayout: React.FC = () => {
                                 supabase.auth.getUser().then(({ data }) => {
                                     const p = data.user?.email?.split('@')[0];
                                     const link = `${window.location.origin}/login?phone=${p}&pin=123456`;
-
-                                    // Mostramos un modal o una alerta clara
                                     const confirmKey = window.confirm(
                                         "ESTO ES TU LLAVE PRIVADA.\n\n" +
                                         "No se la envíes a nadie o podrán entrar a tu cuenta.\n" +
                                         "¿Quieres copiarla para guardarla en tus notas?"
                                     );
-
                                     if (confirmKey) {
                                         navigator.clipboard.writeText(link);
                                         toast.success('¡Llave privada copiada!');
@@ -101,11 +137,17 @@ const MainLayout: React.FC = () => {
                             <FaCommentDots size={22} />
                         </button>
                         <button
-                            onClick={handleLogout}
-                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
-                            title="Salir"
+                            onClick={() => setIsProfileOpen(true)}
+                            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl transition-all active:scale-90"
+                            title="Mi Perfil"
                         >
-                            <FaSignOutAlt size={20} />
+                            <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                                {currentUser?.profile?.avatar_url ? (
+                                    <img src={currentUser.profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    <FaUserCircle className="text-gray-400" size={24} />
+                                )}
+                            </div>
                         </button>
                     </div>
                 </div>
@@ -135,6 +177,10 @@ const MainLayout: React.FC = () => {
                 onClose={() => setIsNewChatOpen(false)}
                 onChatCreated={handleChatCreated}
             />
+
+            {isProfileOpen && (
+                <ProfileModal onClose={() => setIsProfileOpen(false)} />
+            )}
 
             {isAdminOpen && (
                 <AdminDashboard onClose={() => setIsAdminOpen(false)} />

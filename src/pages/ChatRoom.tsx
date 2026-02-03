@@ -225,11 +225,11 @@ const ChatRoom: React.FC = () => {
                                     >
                                         <div className="text-[14px] leading-relaxed break-words font-medium">
                                             {msg.type === 'image' ? (
-                                                <div className="rounded-lg overflow-hidden mb-1">
+                                                <div className="rounded-xl overflow-hidden mb-1 -m-1">
                                                     <img
                                                         src={msg.media_url}
                                                         alt="Mensaje de imagen"
-                                                        className="max-w-full h-auto object-cover max-h-60"
+                                                        className="w-full max-w-[300px] md:max-w-[400px] h-auto object-cover max-h-[500px]"
                                                         onClick={() => window.open(msg.media_url, '_blank')}
                                                     />
                                                 </div>

@@ -48,5 +48,31 @@ export const userService = {
 
         if (error) throw error;
         return data as Profile;
+    },
+    async updateProfile(updates: Partial<Profile>) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No autenticado');
+
+        const { error } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('id', user.id);
+
+        if (error) throw error;
+    },
+
+    async deleteAccount() {
+        // En Supabase, para borrar un usuario de auth necesitas privilegios de admin
+        // Pero podemos marcar su perfil como borrado o simplemente borrar sus datos de perfil
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No autenticado');
+
+        const { error } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', user.id);
+
+        if (error) throw error;
+        await supabase.auth.signOut();
     }
 };

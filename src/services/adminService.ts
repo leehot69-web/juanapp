@@ -30,5 +30,24 @@ export const adminService = {
             .eq('id', userId);
 
         if (error) throw error;
+    },
+
+    async getAllUsers() {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('username', { ascending: true });
+
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteUser(userId: string) {
+        const { error } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', userId);
+
+        if (error) throw error;
     }
 };
