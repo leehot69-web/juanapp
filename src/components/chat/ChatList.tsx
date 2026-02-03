@@ -13,10 +13,14 @@ const ChatList: React.FC = () => {
     const navigate = useNavigate();
     const { id: activeChatId } = useParams();
 
+    const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
     const fetchChats = async () => {
         try {
             const { data: { user: currentUser } } = await supabase.auth.getUser();
             if (!currentUser) return;
+            setCurrentUserId(currentUser.id);
 
             const myChats = await chatService.getMyChats();
 
@@ -37,13 +41,27 @@ const ChatList: React.FC = () => {
                     }
                 }
 
+                // Obtener último mensaje para previsualización y conteo (opcional)
+                const { data: lastMsg } = await supabase
+                    .from('messages')
+                    .select('content, created_at, type')
+                    .eq('chat_id', chat.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
                 return {
                     ...chat,
-                    displayInfo
+                    displayInfo,
+                    lastMessage: lastMsg
                 };
             }));
 
-            setChats(enrichedChats);
+            setChats(enrichedChats.sort((a, b) => {
+                const dateA = a.lastMessage?.created_at || a.created_at;
+                const dateB = b.lastMessage?.created_at || b.created_at;
+                return new Date(dateB).getTime() - new Date(dateA).getTime();
+            }));
         } catch (error) {
             console.error('Error fetching chats:', error);
         } finally {
@@ -53,8 +71,50 @@ const ChatList: React.FC = () => {
 
     useEffect(() => {
         fetchChats();
-        // Here we could add a real-time subscription for new chats
-    }, []);
+
+        // 1. Suscripción para nuevos chats/grupos
+        const chatSub = supabase
+            .channel('public:chat_participants')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'chat_participants' },
+                () => fetchChats()
+            )
+            .subscribe();
+
+        // 2. Suscripción para nuevos mensajes (notificaciones)
+        const msgSub = supabase
+            .channel('public:messages_global')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'messages' },
+                (payload) => {
+                    const newMsg = payload.new;
+                    // Solo si el mensaje NO es mío y NO estoy en ese chat
+                    if (newMsg.sender_id !== currentUserId && newMsg.chat_id !== activeChatId) {
+                        setUnreadCounts(prev => ({
+                            ...prev,
+                            [newMsg.chat_id]: (prev[newMsg.chat_id] || 0) + 1
+                        }));
+                        // También refrescar la lista para actualizar la previsualización y el orden
+                        fetchChats();
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(chatSub);
+            supabase.removeChannel(msgSub);
+        };
+    }, [activeChatId]);
+
+    // Limpiar notificaciones al entrar a un chat
+    useEffect(() => {
+        if (activeChatId) {
+            setUnreadCounts(prev => ({ ...prev, [activeChatId]: 0 }));
+        }
+    }, [activeChatId]);
 
     const filteredChats = chats.filter(chat =>
         chat.displayInfo.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -128,8 +188,15 @@ const ChatList: React.FC = () => {
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate pr-4">
-                                        {chat.displayInfo.is_group ? 'Grupo' : 'Chat Individual'} • Pulsa para ver
+                                        {chat.lastMessage
+                                            ? (chat.lastMessage.type === 'text' ? chat.lastMessage.content : `📎 ${chat.lastMessage.type}`)
+                                            : (chat.displayInfo.is_group ? 'Grupo' : 'Chat Individual')}
                                     </p>
+                                    {unreadCounts[chat.id] > 0 && (
+                                        <div className="bg-primary text-gray-950 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center animate-bounce shadow-lg shadow-primary/40">
+                                            {unreadCounts[chat.id]}
+                                        </div>
+                                    )}
                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                                         <FaEllipsisV className="text-gray-300 text-[10px]" />
                                     </div>
