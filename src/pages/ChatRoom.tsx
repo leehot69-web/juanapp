@@ -17,6 +17,9 @@ const ChatRoom: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);
 
+    // Usar useRef para el audio para evitar que se recree en cada render
+    const audioRef = useRef<HTMLAudioElement>(new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3'));
+
     useEffect(() => {
         supabase.auth.getUser().then(({ data: { user } }) => {
             if (user) setCurrentUserId(user.id);
@@ -68,8 +71,6 @@ const ChatRoom: React.FC = () => {
         }
     };
 
-    const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
-
     useEffect(() => {
         if (!chatId || !currentUserId) return;
 
@@ -79,7 +80,10 @@ const ChatRoom: React.FC = () => {
 
         const subscription = messageService.subscribeToMessages(chatId, (msg) => {
             if (msg.sender_id !== currentUserId) {
-                notificationSound.play().catch(e => console.log('Audio play blocked by browser'));
+                // Play sound with a small delay or gesture check
+                audioRef.current.play().catch(() => {
+                    console.log('Interacción necesaria para el sonido');
+                });
             }
             setMessages(prev => {
                 if (prev.find(m => m.id === msg.id)) return prev;
@@ -94,7 +98,7 @@ const ChatRoom: React.FC = () => {
 
     useEffect(() => {
         if (scrollRef.current) {
-            scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+            scrollRef.current.scrollIntoView({ behavior: 'auto' });
         }
     }, [messages]);
 
@@ -114,7 +118,7 @@ const ChatRoom: React.FC = () => {
     };
 
     if (loading) return (
-        <div className="flex-1 flex flex-col items-center justify-center bg-[#efeae2] dark:bg-gray-950">
+        <div className="h-full flex flex-col items-center justify-center bg-[#efeae2] dark:bg-gray-950">
             <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Desprotegiendo mensajes...</p>
         </div>
@@ -122,8 +126,8 @@ const ChatRoom: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full bg-[#efeae2] dark:bg-gray-950 relative overflow-hidden">
-            {/* Header */}
-            <header className="h-16 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b dark:border-gray-800 flex items-center px-4 gap-4 sticky top-0 z-30 shadow-sm">
+            {/* Header - Fijo arriba */}
+            <header className="flex-none h-16 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b dark:border-gray-800 flex items-center px-4 gap-4 z-30 shadow-sm">
                 <button
                     onClick={() => navigate('/')}
                     className="md:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all"
@@ -154,58 +158,60 @@ const ChatRoom: React.FC = () => {
                 </button>
             </header>
 
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-800">
-                <div className="flex justify-center mb-6">
+            {/* Messages Area - Con Scroll Independiente */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-800 flex flex-col">
+                <div className="flex justify-center mb-6 flex-none">
                     <span className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-gray-500 border dark:border-gray-700 shadow-sm">
                         Comienzo del cifrado seguro
                     </span>
                 </div>
 
-                {messages.map((msg, index) => {
-                    const isOwn = msg.sender_id === currentUserId;
-                    const prevMsg = messages[index - 1];
-                    const showHeader = !isOwn && chatInfo?.is_group && (!prevMsg || prevMsg.sender_id !== msg.sender_id);
+                <div className="flex-1">
+                    {messages.map((msg, index) => {
+                        const isOwn = msg.sender_id === currentUserId;
+                        const prevMsg = messages[index - 1];
+                        const showHeader = !isOwn && chatInfo?.is_group && (!prevMsg || prevMsg.sender_id !== msg.sender_id);
 
-                    return (
-                        <div
-                            key={msg.id}
-                            className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
-                        >
-                            <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[85%] md:max-w-[70%]`}>
-                                {showHeader && (
-                                    <span className="text-[10px] font-black text-primary mb-1 ml-3 uppercase tracking-tighter">
-                                        {msg.profiles?.username}
-                                    </span>
-                                )}
-                                <div
-                                    className={`p-3 relative shadow-sm ${isOwn
-                                        ? 'bg-primary text-white rounded-2xl rounded-tr-none'
-                                        : 'bg-white dark:bg-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none'
-                                        }`}
-                                >
-                                    <div className="text-[14px] leading-relaxed break-words font-medium">
-                                        {msg.content}
-                                    </div>
-                                    <div className={`text-[9px] mt-1.5 font-bold flex items-center justify-end gap-1 ${isOwn ? 'text-white/60' : 'text-gray-400'
-                                        }`}>
-                                        {format(new Date(msg.created_at), 'HH:mm')}
-                                        {isOwn && (
-                                            <svg viewBox="0 0 16 11" width="11" height="8" fill="currentColor">
-                                                <path d="M15.01 1.906L14.042.938 6.124 8.857 2.356 5.09l-.968.969 4.736 4.735 8.887-8.888z"></path>
-                                            </svg>
-                                        )}
+                        return (
+                            <div
+                                key={msg.id}
+                                className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300`}
+                            >
+                                <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[85%] md:max-w-[70%]`}>
+                                    {showHeader && (
+                                        <span className="text-[10px] font-black text-primary mb-1 ml-3 uppercase tracking-tighter">
+                                            {msg.profiles?.username}
+                                        </span>
+                                    )}
+                                    <div
+                                        className={`p-3 relative shadow-sm ${isOwn
+                                                ? 'bg-primary text-white rounded-2xl rounded-tr-none'
+                                                : 'bg-white dark:bg-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none'
+                                            }`}
+                                    >
+                                        <div className="text-[14px] leading-relaxed break-words font-medium">
+                                            {msg.content}
+                                        </div>
+                                        <div className={`text-[9px] mt-1.5 font-bold flex items-center justify-end gap-1 ${isOwn ? 'text-white/60' : 'text-gray-400'
+                                            }`}>
+                                            {format(new Date(msg.created_at), 'HH:mm')}
+                                            {isOwn && (
+                                                <svg viewBox="0 0 16 11" width="11" height="8" fill="currentColor">
+                                                    <path d="M15.01 1.906L14.042.938 6.124 8.857 2.356 5.09l-.968.969 4.736 4.735 8.887-8.888z"></path>
+                                                </svg>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
-                <div ref={scrollRef} className="h-2" />
+                        );
+                    })}
+                    <div ref={scrollRef} className="h-2" />
+                </div>
             </div>
 
-            {/* Input Area */}
-            <div className="p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t dark:border-gray-800">
+            {/* Input Area - Fijo abajo */}
+            <div className="flex-none p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t dark:border-gray-800">
                 <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex items-center gap-2">
                     <div className="flex gap-1 mr-1">
                         <button type="button" className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90">
