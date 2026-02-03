@@ -6,10 +6,29 @@ import ChatList from '../chat/ChatList';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 
+import AdminDashboard from '../../pages/AdminDashboard';
+
 const MainLayout: React.FC = () => {
     const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+    const [isAdminOpen, setIsAdminOpen] = useState(false);
+    const [logoClicks, setLogoClicks] = useState(0);
     const { id } = useParams();
     const isChatActive = !!id;
+
+    const handleLogoClick = () => {
+        const newClicks = logoClicks + 1;
+        setLogoClicks(newClicks);
+
+        if (newClicks === 5) {
+            setLogoClicks(0);
+            const pin = window.prompt('Introduce la clave de administración:');
+            if (pin === '262626') {
+                setIsAdminOpen(true);
+            } else if (pin !== null) {
+                toast.error('Clave incorrecta');
+            }
+        }
+    };
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -27,7 +46,10 @@ const MainLayout: React.FC = () => {
                 w-full md:w-[400px] border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 flex-col
             `}>
                 <div className="p-4 bg-white dark:bg-gray-800 flex justify-between items-center h-16 border-b dark:border-gray-700">
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-green-600 bg-clip-text text-transparent italic">
+                    <h1
+                        onClick={handleLogoClick}
+                        className="text-2xl font-bold bg-gradient-to-r from-primary to-green-600 bg-clip-text text-transparent italic cursor-pointer select-none"
+                    >
                         WhoApp
                     </h1>
                     <div className="flex gap-1">
@@ -113,6 +135,10 @@ const MainLayout: React.FC = () => {
                 onClose={() => setIsNewChatOpen(false)}
                 onChatCreated={handleChatCreated}
             />
+
+            {isAdminOpen && (
+                <AdminDashboard onClose={() => setIsAdminOpen(false)} />
+            )}
         </div>
     );
 };
