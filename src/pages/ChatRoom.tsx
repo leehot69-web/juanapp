@@ -312,14 +312,14 @@ const ChatRoom: React.FC = () => {
             </header>
 
             {/* Messages Area - Con Scroll Independiente y altura fija */}
-            <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-800 flex flex-col overflow-x-hidden">
+            <div className="flex-1 w-full overflow-y-auto px-2 sm:px-4 py-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-800 flex flex-col overflow-x-hidden min-w-0">
                 <div className="flex justify-center mb-6 flex-none">
                     <span className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-gray-500 border dark:border-gray-700 shadow-sm">
                         Comienzo del cifrado seguro
                     </span>
                 </div>
 
-                <div className="flex-1 space-y-4">
+                <div className="w-full flex-1 space-y-4 min-w-0">
                     {messages.map((msg, index) => {
                         const isOwn = msg.sender_id === currentUserId;
                         const prevMsg = messages[index - 1];
@@ -328,9 +328,9 @@ const ChatRoom: React.FC = () => {
                         return (
                             <div
                                 key={msg.id}
-                                className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
+                                className={`flex w-full ${isOwn ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
                             >
-                                <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[80%] md:max-w-[70%]`}>
+                                <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[82%] sm:max-w-[75%] md:max-w-[70%] min-w-0`}>
                                     {showHeader && (
                                         <span className="text-[10px] font-black text-primary mb-1 ml-3 uppercase tracking-tighter">
                                             {msg.profiles?.username}
@@ -342,12 +342,12 @@ const ChatRoom: React.FC = () => {
                                             : isEmojiOnly(msg.content)
                                                 ? 'bg-transparent shadow-none !p-0'
                                                 : isOwn
-                                                    ? 'bg-primary text-white rounded-2xl rounded-tr-none'
+                                                    ? 'bg-primary text-gray-900 rounded-2xl rounded-tr-none'
                                                     : 'bg-white dark:bg-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none'
                                             }`}
                                     >
-                                        <div className={`leading-relaxed break-words font-medium ${isEmojiOnly(msg.content) ? 'text-5xl animate-bounce-subtle' : 'text-[14px]'
-                                            }`}>
+                                        <div className={`leading-relaxed break-words overflow-wrap-anywhere font-medium ${isEmojiOnly(msg.content) ? 'text-5xl animate-bounce-subtle' : 'text-[14px]'
+                                            }`} style={{ wordBreak: 'break-word' }}>
                                             {msg.type === 'image' ? (
                                                 <div className="rounded-xl overflow-hidden mb-1 -m-1">
                                                     <img
@@ -396,7 +396,7 @@ const ChatRoom: React.FC = () => {
                                                 msg.content
                                             )}
                                         </div>
-                                        <div className={`text-[9px] mt-1.5 font-bold flex items-center justify-end gap-1 ${isOwn ? 'text-white/60' : 'text-gray-400'
+                                        <div className={`text-[9px] mt-1.5 font-bold flex items-center justify-end gap-1 ${isOwn ? 'text-gray-900/60' : 'text-gray-400'
                                             }`}>
                                             {format(new Date(msg.created_at), 'HH:mm')}
                                             {isOwn && (
@@ -472,9 +472,8 @@ const ChatRoom: React.FC = () => {
                 </div>
             )}
 
-            {/* Input Area - Fijo abajo */}
-            <div className="flex-none p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t dark:border-gray-800">
-                <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex items-center gap-2">
+            <div className="flex-none w-full p-2 sm:p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t dark:border-gray-800">
+                <form onSubmit={handleSendMessage} className="w-full max-w-4xl mx-auto flex items-center gap-2">
                     <div className="flex gap-1 mr-1">
                         <input
                             type="file"

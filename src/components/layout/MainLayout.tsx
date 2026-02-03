@@ -159,7 +159,7 @@ const MainLayout: React.FC = () => {
             {/* Main Chat Area - Visible on desktop, or on mobile when a chat is active */}
             <div className={`
                 ${isChatActive ? 'flex' : 'hidden md:flex'} 
-                flex-1 flex flex-col bg-[#efeae2] dark:bg-gray-900 relative
+                flex-1 flex flex-col bg-[#efeae2] dark:bg-gray-900 relative w-full min-w-0 overflow-hidden
             `}>
                 <div className="absolute inset-0 opacity-10 pointer-events-none"
                     style={{
