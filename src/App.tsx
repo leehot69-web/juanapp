@@ -105,7 +105,7 @@ function App() {
         }>
           <Route index element={
             <div className="flex flex-col items-center justify-center h-full text-gray-500 bg-gray-50 dark:bg-gray-800">
-              <div className="text-6xl mb-4 text-primary opacity-20 italic font-bold">WhoApp</div>
+              <div className="text-6xl mb-4 text-primary opacity-20 italic font-bold">JuanChat</div>
               <p>Selecciona un chat para empezar a mensajear</p>
               <p className="text-xs mt-2 opacity-50">Cifrado de extremo a extremo (estilo familiar)</p>
             </div>

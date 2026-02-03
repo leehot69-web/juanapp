@@ -55,7 +55,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-all">
                         <FaArrowLeft size={18} />
                     </button>
-                    <h1 className="font-black italic text-xl tracking-tighter uppercase font-mono">Panel de Control: WhoApp</h1>
+                    <h1 className="font-black italic text-xl tracking-tighter uppercase font-mono">Panel de Control: JuanChat</h1>
                 </div>
                 <button onClick={loadUsers} className="p-2 hover:bg-white/20 rounded-full transition-all">
                     <FaSync className={loading ? 'animate-spin' : ''} />

@@ -50,7 +50,7 @@ const MainLayout: React.FC = () => {
                         onClick={handleLogoClick}
                         className="text-2xl font-bold bg-gradient-to-r from-primary to-green-600 bg-clip-text text-transparent italic cursor-pointer select-none"
                     >
-                        WhoApp
+                        JuanChat
                     </h1>
                     <div className="flex gap-1">
                         <button
@@ -58,7 +58,7 @@ const MainLayout: React.FC = () => {
                                 const link = window.location.origin;
                                 navigator.clipboard.writeText(link);
                                 toast.success('Link de invitación copiado');
-                                window.open(`https://wa.me/?text=${encodeURIComponent('¡Hola! Únete a mi WhoApp para que chateemos: ' + link)}`, '_blank');
+                                window.open(`https://wa.me/?text=${encodeURIComponent('¡Hola! Únete a mi JuanChat para que chateemos: ' + link)}`, '_blank');
                             }}
                             className="p-2 text-[#25d366] hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-all"
                             title="Invitar amigos"

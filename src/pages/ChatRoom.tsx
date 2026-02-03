@@ -2,13 +2,14 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { messageService, type Message } from '../services/messageService';
 import { chatService } from '../services/chatService';
-import { FaPaperPlane, FaSmile, FaPlus, FaArrowLeft, FaUserCircle, FaUsers, FaInfoCircle } from 'react-icons/fa';
+import { FaPaperPlane, FaSmile, FaPlus, FaArrowLeft, FaUserCircle, FaUsers, FaInfoCircle, FaPalette } from 'react-icons/fa';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import { storageService } from '../services/storageService';
+import WhiteboardModal from '../components/chat/WhiteboardModal';
 
 const ChatRoom: React.FC = () => {
     const { id: chatId } = useParams();
@@ -19,6 +20,7 @@ const ChatRoom: React.FC = () => {
     const [chatInfo, setChatInfo] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,7 +49,7 @@ const ChatRoom: React.FC = () => {
                     name: chatData.name || 'Chat',
                     avatar_url: null as string | null,
                     is_group: chatData.is_group,
-                    description: chatData.is_group ? 'Grupo de WhoApp' : 'Chat Privado'
+                    description: chatData.is_group ? 'Grupo de JuanChat' : 'Chat Privado'
                 };
 
                 if (!chatData.is_group) {
@@ -278,6 +280,14 @@ const ChatRoom: React.FC = () => {
                         />
                         <button
                             type="button"
+                            onClick={() => setIsWhiteboardOpen(true)}
+                            className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90"
+                            title="Pizarra Interactiva"
+                        >
+                            <FaPalette size={18} />
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={uploading}
                             className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90"
@@ -311,6 +321,13 @@ const ChatRoom: React.FC = () => {
                     </button>
                 </form>
             </div>
+            {isWhiteboardOpen && chatId && currentUserId && (
+                <WhiteboardModal
+                    chatId={chatId}
+                    userId={currentUserId}
+                    onClose={() => setIsWhiteboardOpen(false)}
+                />
+            )}
         </div>
     );
 };

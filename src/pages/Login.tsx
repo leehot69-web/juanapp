@@ -38,7 +38,7 @@ const Login: React.FC = () => {
             return;
         }
 
-        const fakeEmail = `${cleanUser}@whoapp.io`;
+        const fakeEmail = `${cleanUser}@juanchat.io`;
         const cleanPassword = password.trim() || '123456';
 
         try {
@@ -112,10 +112,10 @@ const Login: React.FC = () => {
             <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 border-t-8 border-[#25d366]">
                 <div className="text-center mb-10">
                     <div className="inline-block p-4 bg-[#25d366]/10 rounded-full mb-4">
-                        <div className="text-5xl font-black text-[#25d366] italic">WhoApp</div>
+                        <div className="text-5xl font-black text-[#25d366] italic">JuanChat</div>
                     </div>
                     <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-                        {isRegistering ? 'Crea tu Identidad' : 'Entra a WhoApp'}
+                        {isRegistering ? 'Crea tu Identidad' : 'Entra a JuanChat'}
                     </h2>
                     <p className="text-sm text-gray-500 mt-2 italic">Sin números expuestos. Chat 100% privado.</p>
                 </div>
