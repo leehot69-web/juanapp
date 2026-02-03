@@ -158,15 +158,15 @@ const ChatRoom: React.FC = () => {
                 </button>
             </header>
 
-            {/* Messages Area - Con Scroll Independiente */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-800 flex flex-col">
+            {/* Messages Area - Con Scroll Independiente y altura fija */}
+            <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-800 flex flex-col">
                 <div className="flex justify-center mb-6 flex-none">
                     <span className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-gray-500 border dark:border-gray-700 shadow-sm">
                         Comienzo del cifrado seguro
                     </span>
                 </div>
 
-                <div className="flex-1">
+                <div className="flex-1 space-y-4">
                     {messages.map((msg, index) => {
                         const isOwn = msg.sender_id === currentUserId;
                         const prevMsg = messages[index - 1];
@@ -175,7 +175,7 @@ const ChatRoom: React.FC = () => {
                         return (
                             <div
                                 key={msg.id}
-                                className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300`}
+                                className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
                             >
                                 <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[85%] md:max-w-[70%]`}>
                                     {showHeader && (
