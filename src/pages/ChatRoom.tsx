@@ -535,7 +535,7 @@ const ChatRoom: React.FC = () => {
                     <button
                         type="submit"
                         disabled={!newMessage.trim() || uploading}
-                        className="bg-primary text-white w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-green-600 transition-all hover:shadow-lg hover:shadow-primary/20 active:scale-90 disabled:opacity-50 disabled:grayscale disabled:scale-100"
+                        className="bg-primary text-gray-950 w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-green-600 transition-all hover:shadow-lg hover:shadow-primary/20 active:scale-90 disabled:opacity-50 disabled:grayscale disabled:scale-100 flex-shrink-0"
                     >
                         <FaPaperPlane size={16} />
                     </button>
