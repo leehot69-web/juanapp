@@ -68,7 +68,7 @@ const MainLayout: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen bg-white dark:bg-gray-900 overflow-hidden">
+        <div className="flex h-[100dvh] bg-white dark:bg-gray-900 overflow-hidden w-full max-w-full">
             {/* Sidebar - Visible on desktop, or on mobile when no chat is active */}
             <div className={`
                 ${isChatActive ? 'hidden md:flex' : 'flex'} 

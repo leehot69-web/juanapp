@@ -176,7 +176,7 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
     };
 
     return (
-        <div className="fixed inset-0 bg-white z-[60] flex flex-col overflow-hidden animate-in fade-in duration-300">
+        <div className="fixed inset-0 h-[100dvh] w-full bg-white z-[60] flex flex-col overflow-hidden animate-in fade-in duration-300">
             {/* Toolbar */}
             <div className="h-20 bg-gray-50 dark:bg-gray-900 border-b flex items-center px-4 justify-between shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto scrollbar-hide py-2">

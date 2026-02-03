@@ -2,20 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    @apply antialiased text-gray-900 dark:text-gray-100;
+    overscroll-behavior-y: none;
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+  }
+}
+
 /* Custom Scrollbar for nicer aesthetic */
 ::-webkit-scrollbar {
   width: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #cbd5e0;
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
 }
+
 @layer utilities {
   .animate-bounce-subtle {
     animation: bounce-subtle 2s infinite ease-in-out;
@@ -23,9 +37,12 @@
 }
 
 @keyframes bounce-subtle {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-5px);
   }

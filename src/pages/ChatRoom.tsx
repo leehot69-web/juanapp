@@ -55,17 +55,12 @@ const ChatRoom: React.FC = () => {
     useEffect(() => {
         if (isWhiteboardOpen) {
             document.body.style.overflow = 'hidden';
-            document.body.style.position = 'fixed';
-            document.body.style.width = '100%';
+            // No usamos position: fixed aquí porque causa saltos en móviles
         } else {
             document.body.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.width = '';
         }
         return () => {
             document.body.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.width = '';
         };
     }, [isWhiteboardOpen]);
 
@@ -262,7 +257,7 @@ const ChatRoom: React.FC = () => {
                                 key={msg.id}
                                 className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
                             >
-                                <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[85%] md:max-w-[70%]`}>
+                                <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[75%] md:max-w-[70%]`}>
                                     {showHeader && (
                                         <span className="text-[10px] font-black text-primary mb-1 ml-3 uppercase tracking-tighter">
                                             {msg.profiles?.username}
