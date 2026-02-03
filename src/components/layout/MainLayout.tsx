@@ -167,7 +167,7 @@ const MainLayout: React.FC = () => {
                         backgroundSize: '400px'
                     }}>
                 </div>
-                <div className="flex-1 flex flex-col relative z-10 w-full max-w-5xl mx-auto shadow-2xl bg-white dark:bg-gray-900 overflow-hidden h-full">
+                <div className="flex-1 flex flex-col relative z-10 w-full md:max-w-5xl md:mx-auto md:shadow-2xl bg-white dark:bg-gray-900 overflow-hidden h-full">
                     <Outlet />
                 </div>
             </div>

@@ -54,7 +54,7 @@ const ChatRoom: React.FC = () => {
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const videoPreviewRef = useRef<HTMLVideoElement>(null);
     const chunksRef = useRef<Blob[]>([]);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<any>(null);
 
     const startRecording = async (type: 'audio' | 'video') => {
         try {
@@ -278,7 +278,7 @@ const ChatRoom: React.FC = () => {
     );
 
     return (
-        <div className="flex flex-col h-full bg-[#efeae2] dark:bg-gray-950 relative overflow-hidden">
+        <div className="flex flex-col h-full bg-[#efeae2] dark:bg-gray-950 relative overflow-hidden w-full max-w-full">
             {/* Header - Fijo arriba */}
             <header className="flex-none h-16 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b dark:border-gray-800 flex items-center px-4 gap-4 z-30 shadow-sm">
                 <button
@@ -312,7 +312,7 @@ const ChatRoom: React.FC = () => {
             </header>
 
             {/* Messages Area - Con Scroll Independiente y altura fija */}
-            <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-800 flex flex-col">
+            <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-800 flex flex-col overflow-x-hidden">
                 <div className="flex justify-center mb-6 flex-none">
                     <span className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-gray-500 border dark:border-gray-700 shadow-sm">
                         Comienzo del cifrado seguro
@@ -330,7 +330,7 @@ const ChatRoom: React.FC = () => {
                                 key={msg.id}
                                 className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
                             >
-                                <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[75%] md:max-w-[70%]`}>
+                                <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[80%] md:max-w-[70%]`}>
                                     {showHeader && (
                                         <span className="text-[10px] font-black text-primary mb-1 ml-3 uppercase tracking-tighter">
                                             {msg.profiles?.username}
