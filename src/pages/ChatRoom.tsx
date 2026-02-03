@@ -53,6 +53,23 @@ const ChatRoom: React.FC = () => {
     const audioRef = useRef<HTMLAudioElement>(new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3'));
 
     useEffect(() => {
+        if (isWhiteboardOpen) {
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
+        } else {
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+        };
+    }, [isWhiteboardOpen]);
+
+    useEffect(() => {
         supabase.auth.getUser().then(({ data: { user } }) => {
             if (user) setCurrentUserId(user.id);
         });
@@ -150,6 +167,16 @@ const ChatRoom: React.FC = () => {
         }
     };
 
+    const handleOpenWhiteboard = async () => {
+        if (!chatId) return;
+        setIsWhiteboardOpen(true);
+        try {
+            await messageService.sendMessage(chatId, '🎨 ha abierto la pizarra interactiva. ¡Entra para dibujar!', 'whiteboard_invite');
+        } catch (error) {
+            console.error('Error sending whiteboard invite:', error);
+        }
+    };
+
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !chatId) return;
@@ -243,12 +270,12 @@ const ChatRoom: React.FC = () => {
                                     )}
                                     <div
                                         className={`p-3 relative shadow-sm ${msg.type === 'sticker'
-                                                ? 'bg-transparent shadow-none'
-                                                : isEmojiOnly(msg.content)
-                                                    ? 'bg-transparent shadow-none !p-0'
-                                                    : isOwn
-                                                        ? 'bg-primary text-white rounded-2xl rounded-tr-none'
-                                                        : 'bg-white dark:bg-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none'
+                                            ? 'bg-transparent shadow-none'
+                                            : isEmojiOnly(msg.content)
+                                                ? 'bg-transparent shadow-none !p-0'
+                                                : isOwn
+                                                    ? 'bg-primary text-white rounded-2xl rounded-tr-none'
+                                                    : 'bg-white dark:bg-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none'
                                             }`}
                                     >
                                         <div className={`leading-relaxed break-words font-medium ${isEmojiOnly(msg.content) ? 'text-5xl animate-bounce-subtle' : 'text-[14px]'
@@ -268,6 +295,23 @@ const ChatRoom: React.FC = () => {
                                                     alt="Sticker"
                                                     className="w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-xl animate-bounce-subtle"
                                                 />
+                                            ) : msg.type === 'whiteboard_invite' ? (
+                                                <div className="flex flex-col gap-2 items-center text-center py-2">
+                                                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
+                                                        <FaPalette size={24} />
+                                                    </div>
+                                                    <div className="font-black text-xs uppercase tracking-widest">
+                                                        Pizarra Activa
+                                                    </div>
+                                                    <p className="text-[10px] opacity-80">{msg.content}</p>
+                                                    <button
+                                                        onClick={() => setIsWhiteboardOpen(true)}
+                                                        className={`mt-2 px-6 py-2 rounded-full font-black text-[10px] uppercase tracking-widest transition-all ${isOwn ? 'bg-white text-primary' : 'bg-primary text-white'
+                                                            }`}
+                                                    >
+                                                        Unirse ahora
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 msg.content
                                             )}
@@ -334,7 +378,7 @@ const ChatRoom: React.FC = () => {
                         />
                         <button
                             type="button"
-                            onClick={() => setIsWhiteboardOpen(true)}
+                            onClick={handleOpenWhiteboard}
                             className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90"
                             title="Pizarra Interactiva"
                         >

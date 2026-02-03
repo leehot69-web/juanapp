@@ -25,11 +25,10 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Ajustar al ancho del contenedor real para evitar desbordamiento lateral
+        // Ajustar al tamaño de la pantalla (Lienzo estático)
         const rect = canvas.parentElement?.getBoundingClientRect();
-        const CANVAS_HEIGHT = 5000;
         canvas.width = rect?.width || window.innerWidth;
-        canvas.height = CANVAS_HEIGHT;
+        canvas.height = rect?.height || (window.innerHeight - 80);
 
         // Load existing strokes
         const loadInitialStrokes = async () => {
@@ -234,8 +233,8 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
                 </div>
             </div>
 
-            {/* Canvas Area with Scroll (Paper Roll Style) */}
-            <div className="flex-1 relative bg-[#0b141a] overflow-y-auto overflow-x-hidden scrollbar-hide">
+            {/* Canvas Area (Lienzo Estático) */}
+            <div className="flex-1 relative bg-[#0b141a] touch-none overflow-hidden">
                 <canvas
                     ref={canvasRef}
                     onMouseDown={startDrawing}
@@ -245,7 +244,7 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
                     onTouchStart={startDrawing}
                     onTouchMove={draw}
                     onTouchEnd={stopDrawing}
-                    className="cursor-crosshair bg-[#0b141a]"
+                    className="cursor-crosshair bg-[#0b141a] w-full h-full"
                     style={{
                         filter: isEraser ? 'none' : 'drop-shadow(0 0 5px currentColor)',
                     }}
@@ -254,7 +253,7 @@ const WhiteboardModal: React.FC<WhiteboardModalProps> = ({ chatId, userId, onClo
                 {/* Overlay UI hints */}
                 <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none">
                     <div className="bg-primary/20 backdrop-blur-md text-primary px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/30">
-                        Rollo Infinito: Desliza para escribir más
+                        Pizarra en Vivo (Lienzo Fijo)
                     </div>
                 </div>
             </div>
