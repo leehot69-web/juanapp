@@ -68,6 +68,8 @@ const ChatRoom: React.FC = () => {
         }
     };
 
+    const notificationSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+
     useEffect(() => {
         if (!chatId || !currentUserId) return;
 
@@ -76,6 +78,9 @@ const ChatRoom: React.FC = () => {
         loadMessages();
 
         const subscription = messageService.subscribeToMessages(chatId, (msg) => {
+            if (msg.sender_id !== currentUserId) {
+                notificationSound.play().catch(e => console.log('Audio play blocked by browser'));
+            }
             setMessages(prev => {
                 if (prev.find(m => m.id === msg.id)) return prev;
                 return [...prev, msg];
@@ -175,8 +180,8 @@ const ChatRoom: React.FC = () => {
                                 )}
                                 <div
                                     className={`p-3 relative shadow-sm ${isOwn
-                                            ? 'bg-primary text-white rounded-2xl rounded-tr-none'
-                                            : 'bg-white dark:bg-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none'
+                                        ? 'bg-primary text-white rounded-2xl rounded-tr-none'
+                                        : 'bg-white dark:bg-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none'
                                         }`}
                                 >
                                     <div className="text-[14px] leading-relaxed break-words font-medium">
