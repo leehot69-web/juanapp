@@ -55,6 +55,7 @@ const ChatRoom: React.FC = () => {
     const videoPreviewRef = useRef<HTMLVideoElement>(null);
     const chunksRef = useRef<Blob[]>([]);
     const timerRef = useRef<any>(null);
+    const [showPlusMenu, setShowPlusMenu] = useState(false);
 
     const startRecording = async (type: 'audio' | 'video') => {
         try {
@@ -478,34 +479,83 @@ const ChatRoom: React.FC = () => {
 
             <div className="flex-none w-full p-2 sm:p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t dark:border-gray-800">
                 <form onSubmit={handleSendMessage} className="w-full max-w-4xl mx-auto flex items-center gap-2">
-                    <div className="flex items-center gap-0.5 sm:gap-1">
+                    <div className="flex items-center gap-0.5 sm:gap-1 relative">
                         <button
                             type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploading}
-                            className="p-2 text-gray-500 hover:text-primary transition-all active:scale-90"
+                            onClick={() => setShowPlusMenu(!showPlusMenu)}
+                            className={`p-2 transition-all active:scale-90 ${showPlusMenu ? 'text-primary rotate-45' : 'text-gray-500 hover:text-primary'}`}
                         >
                             <FaPlus size={18} />
                         </button>
 
-                        <div className="hidden sm:flex items-center gap-1">
-                            <button
-                                type="button"
-                                onClick={handleOpenWhiteboard}
-                                className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90"
-                                title="Pizarra Interactiva"
-                            >
-                                <FaPalette size={18} />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => startRecording('video')}
-                                className="p-2 text-gray-400 hover:text-primary transition-all active:scale-90"
-                                title="Mensaje de Video"
-                            >
-                                <FaCamera size={18} />
-                            </button>
-                        </div>
+                        {/* Menú Flotante del "+" */}
+                        {showPlusMenu && (
+                            <div className="absolute bottom-16 left-0 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-3xl shadow-2xl p-2 flex flex-col gap-2 min-w-[200px] animate-in slide-in-from-bottom-5 duration-200 z-50">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        fileInputRef.current?.click();
+                                        setShowPlusMenu(false);
+                                    }}
+                                    className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all text-gray-600 dark:text-gray-300"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                                        <FaPlus size={14} />
+                                    </div>
+                                    <span className="text-[11px] font-black uppercase tracking-widest">Enviar Imagen</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        handleOpenWhiteboard();
+                                        setShowPlusMenu(false);
+                                    }}
+                                    className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all text-gray-600 dark:text-gray-300"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500">
+                                        <FaPalette size={14} />
+                                    </div>
+                                    <span className="text-[11px] font-black uppercase tracking-widest">Pizarra</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        startRecording('video');
+                                        setShowPlusMenu(false);
+                                    }}
+                                    className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all text-gray-600 dark:text-gray-300"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                                        <FaCamera size={14} />
+                                    </div>
+                                    <span className="text-[11px] font-black uppercase tracking-widest">Mensaje Video</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowEmojiPicker(!showEmojiPicker);
+                                        setShowPlusMenu(false);
+                                    }}
+                                    className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all text-gray-600 dark:text-gray-300"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-500">
+                                        <FaSmile size={14} />
+                                    </div>
+                                    <span className="text-[11px] font-black uppercase tracking-widest">Emoticones</span>
+                                </button>
+                            </div>
+                        )}
+
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            className="hidden"
+                            accept="image/*"
+                        />
 
                         <button
                             type="button"
@@ -530,8 +580,8 @@ const ChatRoom: React.FC = () => {
                         type="submit"
                         disabled={!newMessage.trim() || uploading}
                         className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all active:scale-90 flex-shrink-0 shadow-lg border-2 ${!newMessage.trim()
-                                ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 border-transparent shadow-none'
-                                : 'bg-primary text-gray-950 border-primary/20 shadow-primary/40'
+                            ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 border-transparent shadow-none'
+                            : 'bg-primary text-gray-950 border-primary/20 shadow-primary/40'
                             }`}
                     >
                         <FaPaperPlane size={20} className={!newMessage.trim() ? 'opacity-40' : 'opacity-100'} />
