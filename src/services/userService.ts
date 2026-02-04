@@ -62,17 +62,30 @@ export const userService = {
     },
 
     async deleteAccount() {
-        // En Supabase, para borrar un usuario de auth necesitas privilegios de admin
-        // Pero podemos marcar su perfil como borrado o simplemente borrar sus datos de perfil
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('No autenticado');
 
+        // 1. Borrar sus mensajes (evita error de clave foránea)
+        await supabase
+            .from('messages')
+            .delete()
+            .eq('sender_id', user.id);
+
+        // 2. Borrar su participación en chats
+        await supabase
+            .from('chat_participants')
+            .delete()
+            .eq('user_id', user.id);
+
+        // 3. Borrar el perfil público
         const { error } = await supabase
             .from('profiles')
             .delete()
             .eq('id', user.id);
 
         if (error) throw error;
+
+        // 4. Salir de la sesión (El usuario en 'auth.users' solo se puede borrar vía Admin/Dashboard)
         await supabase.auth.signOut();
     }
 };

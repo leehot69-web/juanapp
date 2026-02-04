@@ -107,29 +107,6 @@ const MainLayout: React.FC = () => {
                             </svg>
                         </button>
                         <button
-                            onClick={() => {
-                                supabase.auth.getUser().then(({ data }) => {
-                                    const p = data.user?.email?.split('@')[0];
-                                    const link = `${window.location.origin}/login?phone=${p}&pin=123456`;
-                                    const confirmKey = window.confirm(
-                                        "ESTO ES TU LLAVE PRIVADA.\n\n" +
-                                        "No se la envíes a nadie o podrán entrar a tu cuenta.\n" +
-                                        "¿Quieres copiarla para guardarla en tus notas?"
-                                    );
-                                    if (confirmKey) {
-                                        navigator.clipboard.writeText(link);
-                                        toast.success('¡Llave privada copiada!');
-                                    }
-                                });
-                            }}
-                            className="p-2 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-full transition-all"
-                            title="Mi Llave de Acceso (Privada)"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L7 17l-1 1-1 1H3v-2l1-1 1-1 1.257-1.257A6 6 0 1118 8zm-6-4a1 1 0 100 2h.01a1 1 0 100-2H12z" clipRule="evenodd" />
-                            </svg>
-                        </button>
-                        <button
                             onClick={() => setIsNewChatOpen(true)}
                             className="p-2 text-primary hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all active:scale-95"
                             title="Nuevo Chat"
