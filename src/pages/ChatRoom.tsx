@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { messageService, type Message } from '../services/messageService';
 import { chatService } from '../services/chatService';
-import { FaPaperPlane, FaSmile, FaPlus, FaArrowLeft, FaUserCircle, FaUsers, FaInfoCircle, FaPalette, FaMicrophone, FaCamera, FaStop } from 'react-icons/fa';
+import { FaPaperPlane, FaSmile, FaPlus, FaArrowLeft, FaUserCircle, FaUsers, FaInfoCircle, FaPalette, FaMicrophone, FaCamera, FaStop, FaImage } from 'react-icons/fa';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
@@ -56,6 +56,8 @@ const ChatRoom: React.FC = () => {
     const chunksRef = useRef<Blob[]>([]);
     const timerRef = useRef<any>(null);
     const [showPlusMenu, setShowPlusMenu] = useState(false);
+    const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+    const [isPreviewing, setIsPreviewing] = useState(false);
 
     const startRecording = async (type: 'audio' | 'video') => {
         try {
@@ -76,23 +78,14 @@ const ChatRoom: React.FC = () => {
                 if (e.data.size > 0) chunksRef.current.push(e.data);
             };
 
-            recorder.onstop = async () => {
+            recorder.onstop = () => {
                 const blob = new Blob(chunksRef.current, { type: type === 'video' ? 'video/webm' : 'audio/webm' });
                 stream.getTracks().forEach(track => track.stop());
 
-                const file = new File([blob], `media_${Date.now()}.${type === 'video' ? 'webm' : 'webm'}`, { type: blob.type });
-                const loadingToast = toast.loading(`Enviando ${type === 'video' ? 'video' : 'audio'}...`);
-
-                try {
-                    const url = await storageService.uploadFile(file);
-                    await messageService.sendMessage(chatId!, '', type, url);
-                    toast.success(`${type === 'video' ? 'Video' : 'Audio'} enviado`, { id: loadingToast });
-                } catch (error) {
-                    toast.error('Error al enviar media', { id: loadingToast });
-                }
-
-                setRecordingType(null);
+                setRecordedBlob(blob);
+                setIsPreviewing(true);
                 setIsRecording(false);
+                if (timerRef.current) clearInterval(timerRef.current);
             };
 
             recorder.start();
@@ -121,6 +114,29 @@ const ChatRoom: React.FC = () => {
             mediaRecorderRef.current.stop();
         }
         if (timerRef.current) clearInterval(timerRef.current);
+    };
+
+    const handleDiscardRecording = () => {
+        setRecordedBlob(null);
+        setIsPreviewing(false);
+        setRecordingType(null);
+    };
+
+    const handleSendRecording = async () => {
+        if (!recordedBlob || !chatId || !recordingType) return;
+
+        const file = new File([recordedBlob], `media_${Date.now()}.webm`, { type: recordedBlob.type });
+        const loadingToast = toast.loading(`Enviando ${recordingType === 'video' ? 'video' : 'audio'}...`);
+
+        try {
+            const url = await storageService.uploadFile(file);
+            await messageService.sendMessage(chatId, '', recordingType, url);
+            toast.success(`${recordingType === 'video' ? 'Video' : 'Audio'} enviado`, { id: loadingToast });
+            handleDiscardRecording();
+        } catch (error) {
+            toast.error('Error al enviar media', { id: loadingToast });
+            console.error(error);
+        }
     };
 
     // Usar useRef para el audio para evitar que se recree en cada render
@@ -450,30 +466,77 @@ const ChatRoom: React.FC = () => {
                 </div>
             )}
 
-            {/* Recording Overlay */}
-            {isRecording && (
+            {/* Recording & Preview Overlay */}
+            {(isRecording || isPreviewing) && (
                 <div className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center text-white backdrop-blur-xl animate-in fade-in duration-300">
                     <div className="relative w-[90%] max-w-sm aspect-video bg-gray-900 rounded-3xl overflow-hidden border-4 border-primary/50 shadow-2xl shadow-primary/20 mb-8">
                         {recordingType === 'video' ? (
-                            <video ref={videoPreviewRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+                            isPreviewing ? (
+                                <video src={URL.createObjectURL(recordedBlob!)} controls className="w-full h-full object-cover" />
+                            ) : (
+                                <video ref={videoPreviewRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+                            )
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center font-black text-primary text-xl tracking-[0.3em] uppercase">
-                                GRABANDO AUDIO
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-4">
+                                <div className="font-black text-primary text-xl tracking-[0.3em] uppercase">
+                                    {isPreviewing ? 'VISTA PREVIA' : 'GRABANDO AUDIO'}
+                                </div>
+                                {isPreviewing && recordedBlob && (
+                                    <audio src={URL.createObjectURL(recordedBlob)} controls className="w-[80%]" />
+                                )}
                             </div>
                         )}
-                        <div className="absolute top-4 right-4 bg-red-500 px-3 py-1 rounded-full text-[10px] font-black animate-pulse flex items-center gap-2 text-white">
-                            <div className="w-2 h-2 bg-white rounded-full" /> {timeLeft}s
-                        </div>
+
+                        {!isPreviewing && (
+                            <div className="absolute top-4 right-4 bg-red-500 px-3 py-1 rounded-full text-[10px] font-black animate-pulse flex items-center gap-2 text-white">
+                                <div className="w-2 h-2 bg-white rounded-full" /> {timeLeft}s
+                            </div>
+                        )}
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={stopRecording}
-                        className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-all active:scale-95 shadow-xl shadow-red-500/40 text-white"
-                    >
-                        <FaStop size={30} />
-                    </button>
-                    <p className="mt-4 font-black text-[10px] uppercase tracking-widest text-white/60">Grabando {recordingType === 'video' ? 'Video (15s)' : 'Audio (10s)'}...</p>
+                    <div className="flex gap-4 items-center">
+                        {isRecording ? (
+                            <div className="flex gap-6 items-center">
+                                <button
+                                    type="button"
+                                    onClick={handleDiscardRecording}
+                                    className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-all"
+                                    title="Cancelar"
+                                >
+                                    <FaPlus className="rotate-45" size={24} />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={stopRecording}
+                                    className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-all active:scale-95 shadow-xl shadow-red-500/40 text-white"
+                                >
+                                    <FaStop size={30} />
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={handleDiscardRecording}
+                                    className="px-8 py-3 bg-gray-800 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-700 transition-all flex items-center gap-2"
+                                >
+                                    Eliminar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSendRecording}
+                                    className="px-8 py-3 bg-primary text-gray-950 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-green-400 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+                                >
+                                    Enviar
+                                </button>
+                            </>
+                        )}
+                    </div>
+                    {!isPreviewing && (
+                        <p className="mt-4 font-black text-[10px] uppercase tracking-widest text-white/60">
+                            Grabando {recordingType === 'video' ? 'Video (15s)' : 'Audio (10s)'}...
+                        </p>
+                    )}
                 </div>
             )}
 
@@ -500,7 +563,7 @@ const ChatRoom: React.FC = () => {
                                     className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all text-gray-600 dark:text-gray-300"
                                 >
                                     <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
-                                        <FaPlus size={14} />
+                                        <FaImage size={14} />
                                     </div>
                                     <span className="text-[11px] font-black uppercase tracking-widest">Enviar Imagen</span>
                                 </button>
